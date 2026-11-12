@@ -1,0 +1,19 @@
+.gradle/
+.idea/
+build/
+**/build/
+local.properties
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Added for GitHub publication
+.kotlin/
+*.keystore
+*.jks
+*.apk
+*.aab
+.cursor/
+*.log
+.DS_Store

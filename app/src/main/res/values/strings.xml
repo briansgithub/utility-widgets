@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FloatPlay</string>
+    <string name="widget_screen_description">Choose which floating buttons stay available over your apps.</string>
+    <string name="play_widget_title">Play / pause</string>
+    <string name="play_widget_description">Control the active media player from any screen.</string>
+    <string name="rotate_widget_title">Auto-rotate screen</string>
+    <string name="rotate_widget_description">Toggle Android’s Auto-rotate screen setting.</string>
+    <string name="widget_enabled">Enabled</string>
+    <string name="overlay_permission_button">Allow display over other apps</string>
+    <string name="rotation_permission_button">Allow changing system settings</string>
+    <string name="overlay_permission_needed">Allow FloatPlay to display over other apps to use floating buttons.</string>
+    <string name="rotation_permission_needed">Allow FloatPlay to change system settings to use Auto-rotate.</string>
+    <string name="all_permissions_ready">Required access is ready.</string>
+    <string name="toggle_auto_rotate">Toggle Auto-rotate screen</string>
+    <string name="auto_rotate_on">Auto-rotate enabled</string>
+    <string name="auto_rotate_off">Auto-rotate disabled</string>
+    <string name="overlay_needed">Allow FloatPlay to display over other apps, then open it again.</string>
+    <string name="channel_name">Floating button</string>
+    <string name="channel_description">Shown while the play and pause button is on screen.</string>
+    <string name="notification_title">FloatPlay is on</string>
+    <string name="notification_text">Tap the FloatPlay icon again to remove the button.</string>
+    <string name="bubble_hidden">Floating button removed</string>
+    <string name="nothing_playing">Nothing is playing</string>
+    <string name="play_media">Play media</string>
+    <string name="pause_media">Pause media</string>
+    <string name="toggle_media">Play or pause</string>
+</resources>
