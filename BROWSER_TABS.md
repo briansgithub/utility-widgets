@@ -6,9 +6,9 @@ Default rectangle direction is **left → next, right → previous**. The Browse
 
 The copied accessibility implementation retains the circle/rectangle layout, vertical and diagonal movement, direction locking, exact native browser-control matching, popup handling and 1 ms toolbar stroke. Its Android accessibility approval is specific to Float Tools and cannot be inherited from Tab Bubble. The disclosure and link to Android Accessibility settings are now on the Permissions page. The service is protected by `BIND_ACCESSIBILITY_SERVICE`; no internet permission was added.
 
-Standalone Tab Bubble 0.8 also uses the new left-next/right-previous default, so its installed widget follows the requested direction while the user completes Float Tools setup. The direction toggle belongs to Float Tools. The standalone app is retained; no user data or app was deleted.
+The standalone Tab Bubble project has been retired after its controls were folded into Float Tools. Its source copies and local project artifacts were removed with user authorization. The integrated implementation and direction toggle remain in Float Tools. An older standalone installation on a phone can be disabled or uninstalled separately.
 
-The checkout contained existing uncommitted brightness, media, appearance and settings changes. Those were retained. Snapshots of the previously existing files touched by this task were saved outside this repository in `tab-bubble/.debug/float-tools-before-tabs` for comparison. Existing mixed Windows/UTF-8 characters in the string resources and README were normalized to valid UTF-8 while preserving their text; no existing resource text was changed except the introduction of the fourth tool in the widget instructions.
+The checkout contained existing uncommitted brightness, media, appearance and settings changes. Those were retained and committed in logical groups. Temporary comparison snapshots were removed during the authorized standalone-project cleanup. Existing mixed Windows/UTF-8 characters in the string resources and README were normalized to valid UTF-8 while preserving their text; no existing resource text was changed except the introduction of the fourth tool in the widget instructions.
 
 ## Validation
 
@@ -73,7 +73,7 @@ Read the Pixel 9 Pro's `com.floatplay.overlay` preferences with `adb -t 52 shell
 
 ## Source publication checks
 
-All current Float Tools changes were grouped into brightness/customization, media/home-screen widget, browser tabs, appearance/permissions, and default-color commits, followed by standalone-source and documentation commits. The standalone app is included as `standalone-tab-bubble/` in the same repository, since the original local folder had no Git remote. Source files and the standard Gradle wrapper are included; local settings, generated builds/APKs, logs, private phone captures and temporary task helpers are excluded.
+Float Tools changes were grouped into brightness/customization, media/home-screen widget, browser tabs, appearance/permissions, and default-color commits. A standalone source copy was initially published before the user's destination reply arrived, then removed in a normal cleanup commit after the user requested keeping it out of the current repository and subsequently authorized deleting the obsolete local project. Earlier commits retain that historical copy; published history was not rewritten. Local settings, generated builds/APKs, logs, private phone captures and temporary task helpers were never added to Git.
 
 Before publication, the following checks passed on the current final source:
 
@@ -84,8 +84,12 @@ Before publication, the following checks passed on the current final source:
 # Repository root: device-test APK compiled; no device tests were executed.
 .\gradlew.bat --offline :app:assembleDebugAndroidTest --console=plain
 
-# From standalone-tab-bubble: independent app build and lint passed without local.properties.
+# Historical standalone check before its retirement: build/lint passed without local.properties.
 .\gradlew.bat --offline :app:assembleDebug :app:lintDebug --console=plain
 ```
 
-No phone interaction was performed during publication. The existing device-test sources were compiled only. The original local `tab-bubble` folder remains available; its publishable source is copied into this repository and its ignored captures/builds remain outside Git.
+No phone interaction was performed during publication. The existing device-test sources were compiled only. The standalone build command above records its successful validation before the obsolete project was removed; Float Tools is now the maintained app.
+
+## Retired standalone project cleanup
+
+Removed the tracked `standalone-tab-bubble/` copy, its ignored local build files, and the original `C:\Users\user1\Desktop\Projects\tab-bubble` folder, including temporary captures, APKs and task helpers, after explicit user authorization. Cleanup targets were resolved and checked to remain inside `C:\Users\user1\Desktop\Projects` before recursive removal. Float Tools' source and packaged builds were retained. Only standalone files and documentation changed, so application tests were not rerun; the existing passing Float Tools build/test results above still apply. The Pixel was disconnected, so no phone apps or settings were changed during cleanup.

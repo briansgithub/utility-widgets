@@ -1,4 +1,0 @@
-<resources>
-    <string name="app_name">Tab Bubble</string>
-    <string name="service_description">Shows a floating close-tab circle with a swipe rectangle below it over Chrome and Firefox. Tap the circle to close the current tab or drag the circle to move the whole widget. Swipe the rectangle horizontally left for the next tab or right for the previous tab. Start dragging the rectangle vertically or diagonally to move the whole widget. Tab Bubble reads native browser controls and performs toolbar gestures on your behalf. Accessibility access can expose screen contents. Tab Bubble does not save or send screen contents and has no internet permission. Disable this service at any time in Accessibility settings.</string>
-</resources>

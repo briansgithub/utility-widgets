@@ -2,7 +2,7 @@
 
 Android app with independently configurable floating play/pause and auto-rotate buttons, a brightness dial, and Chrome/Firefox tab controls.
 
-The integrated Float Tools app is at the repository root. The earlier [standalone Tab Bubble app](standalone-tab-bubble/README.md) is retained in `standalone-tab-bubble/` with its own build and validation instructions.
+The integrated Float Tools app is at the repository root. Browser-tab controls are part of this app; the separate Tab Bubble project has been retired.
 
 Enable Brightness in the app to drag to move, double-tap and drag around the dial for 0–100% manual brightness, or tap for automatic brightness. The app provides a 64–160 dp dial size slider. A sun icon indicates manual mode; a sun surrounded by an arrow indicates automatic mode. Brightness requires change-system-settings access.
 
