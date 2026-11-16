@@ -39,6 +39,7 @@ class OverlayService : Service() {
     private var bubble: View? = null
     private var iconView: ImageView? = null
     private var rotateBubble: View? = null
+    private var brightnessBubble: BrightnessBubble? = null
     private var rotateParams: WindowManager.LayoutParams? = null
     private var sessionsListener: MediaSessionManager.OnActiveSessionsChangedListener? = null
     private val controllerCallbacks = mutableListOf<Pair<MediaController, MediaController.Callback>>()
@@ -67,11 +68,11 @@ class OverlayService : Service() {
     private var startY = 0
 
     private val longPressRunnable = Runnable {
-        if (!dragging && (bubble != null || rotateBubble != null)) {
+        if (!dragging && (bubble != null || rotateBubble != null || brightnessBubble != null)) {
             suppressClick = true
             Toast.makeText(this, R.string.bubble_hidden, Toast.LENGTH_SHORT).show()
             ToolSettings.prefs(this).edit().putBoolean(KEY_PLAY_ENABLED, false)
-                .putBoolean(KEY_ROTATE_ENABLED, false).apply()
+                .putBoolean(KEY_ROTATE_ENABLED, false).putBoolean(KEY_BRIGHTNESS_ENABLED, false).apply()
             stopSelf()
         }
     }
@@ -93,7 +94,7 @@ class OverlayService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             ToolSettings.prefs(this).edit().putBoolean(KEY_PLAY_ENABLED, false)
-                .putBoolean(KEY_ROTATE_ENABLED, false).apply()
+                .putBoolean(KEY_ROTATE_ENABLED, false).putBoolean(KEY_BRIGHTNESS_ENABLED, false).apply()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -126,7 +127,14 @@ class OverlayService : Service() {
         }
         if (prefs.getBoolean(KEY_ROTATE_ENABLED, false) && Settings.System.canWrite(this)) showRotateBubble()
         else removeRotateBubble()
-        if (bubble == null && rotateBubble == null && tapCount == 0) stopSelf()
+        if (prefs.getBoolean(KEY_BRIGHTNESS_ENABLED, false) && Settings.System.canWrite(this)) {
+            if (brightnessBubble == null) brightnessBubble = BrightnessBubble(this, windowManager)
+            brightnessBubble?.show()
+        } else {
+            brightnessBubble?.remove()
+            brightnessBubble = null
+        }
+        if (bubble == null && rotateBubble == null && brightnessBubble == null && tapCount == 0) stopSelf()
     }
 
     override fun onDestroy() {
@@ -141,6 +149,8 @@ class OverlayService : Service() {
         clearControllerCallbacks()
         removeBubble()
         removeRotateBubble()
+        brightnessBubble?.remove()
+        brightnessBubble = null
         isRunning = false
         super.onDestroy()
     }
@@ -463,8 +473,10 @@ class OverlayService : Service() {
         const val PREFS = "floatplay"
         const val WIDGET_PLAY = "play"
         const val WIDGET_ROTATE = "rotate"
+        const val WIDGET_BRIGHTNESS = "brightness"
         const val KEY_PLAY_ENABLED = "play_widget_enabled"
         const val KEY_ROTATE_ENABLED = "rotate_widget_enabled"
+        const val KEY_BRIGHTNESS_ENABLED = "brightness_widget_enabled"
         private const val KEY_X = "bubble_x"
         private const val KEY_Y = "bubble_y"
         private const val KEY_ROTATE_X = "rotate_bubble_x"
@@ -484,11 +496,17 @@ class OverlayService : Service() {
             context.stopService(Intent(context, OverlayService::class.java))
         }
 
-        fun enabledKey(widget: String): String = if (widget == WIDGET_PLAY) KEY_PLAY_ENABLED else KEY_ROTATE_ENABLED
+        fun enabledKey(widget: String): String = when (widget) {
+            WIDGET_PLAY -> KEY_PLAY_ENABLED
+            WIDGET_ROTATE -> KEY_ROTATE_ENABLED
+            WIDGET_BRIGHTNESS -> KEY_BRIGHTNESS_ENABLED
+            else -> error("Unknown widget: $widget")
+        }
 
         fun anyWidgetEnabled(context: Context): Boolean {
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            return prefs.getBoolean(KEY_PLAY_ENABLED, false) || prefs.getBoolean(KEY_ROTATE_ENABLED, false)
+            return prefs.getBoolean(KEY_PLAY_ENABLED, false) || prefs.getBoolean(KEY_ROTATE_ENABLED, false) ||
+                prefs.getBoolean(KEY_BRIGHTNESS_ENABLED, false)
         }
     }
 }

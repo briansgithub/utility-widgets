@@ -1,6 +1,8 @@
 # Float Tools
 
-Android app with independently configurable floating play/pause and auto-rotate buttons.
+Android app with independently configurable floating play/pause and auto-rotate buttons, plus a brightness dial.
+
+Enable Brightness in the app to turn the dial for 0–100% manual brightness, tap for automatic brightness, or double-tap and hold then drag to move. Brightness requires change-system-settings access.
 
 Add **Float Tools** from your launcher's Widgets menu, or use **Add home-screen widget** in the app. By default:
 

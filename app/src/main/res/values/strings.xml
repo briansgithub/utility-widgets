@@ -10,7 +10,7 @@
     <string name="overlay_permission_button">Allow display over other apps</string>
     <string name="rotation_permission_button">Allow changing system settings</string>
     <string name="overlay_permission_needed">Allow Float Tools to display over other apps to use floating buttons.</string>
-    <string name="rotation_permission_needed">Allow Float Tools to change system settings to use Auto-rotate.</string>
+    <string name="rotation_permission_needed">Allow Float Tools to change system settings to use Auto-rotate and Brightness.</string>
     <string name="all_permissions_ready">Required access is ready.</string>
     <string name="toggle_auto_rotate">Toggle Auto-rotate screen</string>
     <string name="auto_rotate_on">Auto-rotate enabled</string>
@@ -38,4 +38,12 @@
     <string name="apply_color">Apply color</string>
     <string name="invalid_color">Enter a color such as #167D8D.</string>
     <string name="unassigned_taps">No tool assigned to this tap count.</string>
+    <string name="brightness_widget_title">Brightness</string>
+    <string name="brightness_widget_description" formatted="false">Turn the dial to adjust 0–100%. Tap to toggle auto brightness. Double-tap and hold, then drag to move.</string>
+    <string name="brightness_auto_on">Auto on</string>
+    <string name="brightness_auto_off">Auto off</string>
+    <string name="brightness_toggle_auto">Toggle auto brightness</string>
+    <string name="brightness_dial_state">Brightness: %1$d%%, %2$s. Turn to adjust; double-tap and drag to move.</string>
+    <string name="brightness_percent">%1$d%%</string>
+    <string name="brightness_failed">Could not change brightness. Check system settings access.</string>
 </resources>

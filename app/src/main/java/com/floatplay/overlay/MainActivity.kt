@@ -20,6 +20,7 @@ import android.widget.Toast
 class MainActivity : Activity() {
     private lateinit var playSwitch: Switch
     private lateinit var rotateSwitch: Switch
+    private lateinit var brightnessSwitch: Switch
     private lateinit var accessStatus: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,6 +54,7 @@ class MainActivity : Activity() {
 
         playSwitch = addWidgetRow(root, R.string.play_widget_title, R.string.play_widget_description)
         rotateSwitch = addWidgetRow(root, R.string.rotate_widget_title, R.string.rotate_widget_description)
+        brightnessSwitch = addWidgetRow(root, R.string.brightness_widget_title, R.string.brightness_widget_description)
         accessStatus = TextView(this).apply {
             textSize = 14f
             setTextColor(0xFFB6C2CF.toInt())
@@ -92,6 +94,7 @@ class MainActivity : Activity() {
         refreshControls()
         playSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_PLAY, enabled) }
         rotateSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_ROTATE, enabled) }
+        brightnessSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_BRIGHTNESS, enabled) }
     }
 
     private fun addWidgetRow(root: LinearLayout, title: Int, description: Int): Switch {
@@ -116,7 +119,7 @@ class MainActivity : Activity() {
         val toggle = Switch(this).apply { text = getString(R.string.widget_enabled) }
         card.addView(toggle)
         val tool = if (title == R.string.play_widget_title) OverlayService.WIDGET_PLAY else OverlayService.WIDGET_ROTATE
-        addSettings(card, tool)
+        if (title != R.string.brightness_widget_title) addSettings(card, tool)
         root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
         return toggle
     }
@@ -211,10 +214,13 @@ class MainActivity : Activity() {
         val rotateReady = Settings.System.canWrite(this)
         playSwitch.setOnCheckedChangeListener(null)
         rotateSwitch.setOnCheckedChangeListener(null)
+        brightnessSwitch.setOnCheckedChangeListener(null)
         playSwitch.isChecked = overlayReady && prefs.getBoolean(OverlayService.KEY_PLAY_ENABLED, false)
         rotateSwitch.isChecked = overlayReady && rotateReady && prefs.getBoolean(OverlayService.KEY_ROTATE_ENABLED, false)
         playSwitch.isEnabled = overlayReady
         rotateSwitch.isEnabled = overlayReady && rotateReady
+        brightnessSwitch.isChecked = overlayReady && rotateReady && prefs.getBoolean(OverlayService.KEY_BRIGHTNESS_ENABLED, false)
+        brightnessSwitch.isEnabled = overlayReady && rotateReady
         accessStatus.text = when {
             !overlayReady -> getString(R.string.overlay_permission_needed)
             !rotateReady -> getString(R.string.rotation_permission_needed)
@@ -222,10 +228,11 @@ class MainActivity : Activity() {
         }
         playSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_PLAY, enabled) }
         rotateSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_ROTATE, enabled) }
+        brightnessSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_BRIGHTNESS, enabled) }
     }
 
     private fun toggleWidget(widget: String, enabled: Boolean) {
-        val needsWriteAccess = widget == OverlayService.WIDGET_ROTATE && !Settings.System.canWrite(this)
+        val needsWriteAccess = widget != OverlayService.WIDGET_PLAY && !Settings.System.canWrite(this)
         if (enabled && !overlayAllowed()) {
             Toast.makeText(this, R.string.overlay_permission_needed, Toast.LENGTH_SHORT).show()
             refreshControls()
