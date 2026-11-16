@@ -1,5 +1,12 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
+}
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 dependencies {
@@ -19,6 +26,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 5
         versionName = "1.4"
+    }
+
+    val floatplayKeystore = localProperties.getProperty("floatplay.keystore")
+    if (!floatplayKeystore.isNullOrBlank()) {
+        signingConfigs {
+            getByName("debug") {
+                storeFile = file(floatplayKeystore)
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
     }
 
     buildTypes {
