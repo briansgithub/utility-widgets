@@ -35,8 +35,14 @@ object ToolSettings {
         .coerceIn(minSize(tool), maxSize(tool))
 
     fun color(context: Context, tool: String): Int = prefs(context)
-        .getInt("${tool}_color", DEFAULT_COLOR)
+        .getInt("${tool}_color", defaultColor(tool))
 
+    fun defaultColor(tool: String): Int = when (tool) {
+        OverlayService.WIDGET_PLAY -> 0xFF16168D.toInt()
+        OverlayService.WIDGET_ROTATE -> 0xFFFFC926.toInt()
+        OverlayService.WIDGET_TABS -> 0xFF919191.toInt()
+        else -> DEFAULT_COLOR
+    }
 
     fun prefs(context: Context) = context.getSharedPreferences(OverlayService.PREFS, Context.MODE_PRIVATE)
 }
