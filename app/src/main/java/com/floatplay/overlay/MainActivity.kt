@@ -21,6 +21,7 @@ class MainActivity : Activity() {
     private lateinit var playSwitch: Switch
     private lateinit var rotateSwitch: Switch
     private lateinit var brightnessSwitch: Switch
+    private lateinit var tabsSwitch: Switch
     private lateinit var accessStatus: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,6 +59,7 @@ class MainActivity : Activity() {
         playSwitch = addWidgetRow(root, R.string.play_widget_title, R.string.play_widget_description)
         rotateSwitch = addWidgetRow(root, R.string.rotate_widget_title, R.string.rotate_widget_description)
         brightnessSwitch = addWidgetRow(root, R.string.brightness_widget_title, R.string.brightness_widget_description)
+        tabsSwitch = addWidgetRow(root, R.string.tabs_widget_title, R.string.tabs_widget_description)
         accessStatus = TextView(this).apply {
             textSize = 14f
             setTextColor(0xFFB6C2CF.toInt())
@@ -104,6 +106,7 @@ class MainActivity : Activity() {
         playSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_PLAY, enabled) }
         rotateSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_ROTATE, enabled) }
         brightnessSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_BRIGHTNESS, enabled) }
+        tabsSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_TABS, enabled) }
     }
 
     private fun addWidgetRow(root: LinearLayout, title: Int, description: Int): Switch {
@@ -130,7 +133,8 @@ class MainActivity : Activity() {
         val tool = when (title) {
             R.string.play_widget_title -> OverlayService.WIDGET_PLAY
             R.string.rotate_widget_title -> OverlayService.WIDGET_ROTATE
-            else -> OverlayService.WIDGET_BRIGHTNESS
+            R.string.brightness_widget_title -> OverlayService.WIDGET_BRIGHTNESS
+            else -> OverlayService.WIDGET_TABS
         }
         addSettings(card, tool)
         root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
@@ -163,6 +167,24 @@ class MainActivity : Activity() {
                     taps.setSelection(ToolSettings.taps(this@MainActivity, tool) - 1)
                 } else prefs.edit().putInt("${tool}_taps", count).apply()
             }
+        }
+        if (tool == OverlayService.WIDGET_TABS) {
+            val direction = label(getString(if (prefs.getBoolean(TabControls.REVERSE_SWIPE, false))
+                R.string.tab_direction_reversed else R.string.tab_direction_default))
+            card.addView(Switch(this).apply {
+                text = getString(R.string.tab_reverse_swipe)
+                isChecked = prefs.getBoolean(TabControls.REVERSE_SWIPE, false)
+                setOnCheckedChangeListener { _, reversed ->
+                    prefs.edit().putBoolean(TabControls.REVERSE_SWIPE, reversed).apply()
+                    direction.text = getString(if (reversed) R.string.tab_direction_reversed else R.string.tab_direction_default)
+                }
+            })
+            label(getString(R.string.tab_service_description))
+            card.addView(Button(this).apply {
+                text = getString(R.string.tab_accessibility_button)
+                setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+            })
+            return
         }
         val minimumSize = ToolSettings.minSize(tool)
         val maximumSize = ToolSettings.maxSize(tool)
@@ -201,12 +223,15 @@ class MainActivity : Activity() {
         playSwitch.setOnCheckedChangeListener(null)
         rotateSwitch.setOnCheckedChangeListener(null)
         brightnessSwitch.setOnCheckedChangeListener(null)
+        tabsSwitch.setOnCheckedChangeListener(null)
         playSwitch.isChecked = overlayReady && prefs.getBoolean(OverlayService.KEY_PLAY_ENABLED, false)
         rotateSwitch.isChecked = overlayReady && rotateReady && prefs.getBoolean(OverlayService.KEY_ROTATE_ENABLED, false)
         playSwitch.isEnabled = overlayReady
         rotateSwitch.isEnabled = overlayReady && rotateReady
         brightnessSwitch.isChecked = overlayReady && rotateReady && prefs.getBoolean(OverlayService.KEY_BRIGHTNESS_ENABLED, false)
         brightnessSwitch.isEnabled = overlayReady && rotateReady
+        tabsSwitch.isChecked = prefs.getBoolean(OverlayService.KEY_TABS_ENABLED, false)
+        tabsSwitch.isEnabled = overlayReady && TabControls.accessibilityEnabled(this)
         accessStatus.text = when {
             !overlayReady -> getString(R.string.overlay_permission_needed)
             !rotateReady -> getString(R.string.rotation_permission_needed)
@@ -216,10 +241,11 @@ class MainActivity : Activity() {
         playSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_PLAY, enabled) }
         rotateSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_ROTATE, enabled) }
         brightnessSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_BRIGHTNESS, enabled) }
+        tabsSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_TABS, enabled) }
     }
 
     private fun toggleWidget(widget: String, enabled: Boolean) {
-        val needsWriteAccess = widget != OverlayService.WIDGET_PLAY && !Settings.System.canWrite(this)
+        val needsWriteAccess = widget in listOf(OverlayService.WIDGET_ROTATE, OverlayService.WIDGET_BRIGHTNESS) && !Settings.System.canWrite(this)
         if (enabled && !overlayAllowed()) {
             Toast.makeText(this, R.string.overlay_permission_needed, Toast.LENGTH_SHORT).show()
             refreshControls()
@@ -227,6 +253,11 @@ class MainActivity : Activity() {
         }
         if (enabled && needsWriteAccess) {
             Toast.makeText(this, R.string.rotation_permission_needed, Toast.LENGTH_SHORT).show()
+            refreshControls()
+            return
+        }
+        if (enabled && widget == OverlayService.WIDGET_TABS && !TabControls.accessibilityEnabled(this)) {
+            Toast.makeText(this, R.string.tab_accessibility_needed, Toast.LENGTH_LONG).show()
             refreshControls()
             return
         }

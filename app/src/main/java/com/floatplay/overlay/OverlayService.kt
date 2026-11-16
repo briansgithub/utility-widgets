@@ -54,7 +54,9 @@ class OverlayService : Service() {
             val prefs = ToolSettings.prefs(this)
             val key = enabledKey(tool)
             val enabled = !prefs.getBoolean(key, false)
-            if (enabled && tool != WIDGET_PLAY && !Settings.System.canWrite(this)) {
+            if (enabled && tool == WIDGET_TABS && !TabControls.accessibilityEnabled(this)) {
+                Toast.makeText(this, R.string.tab_accessibility_needed, Toast.LENGTH_LONG).show()
+            } else if (enabled && tool in listOf(WIDGET_ROTATE, WIDGET_BRIGHTNESS) && !Settings.System.canWrite(this)) {
                 Toast.makeText(this, R.string.rotation_permission_needed, Toast.LENGTH_LONG).show()
             } else prefs.edit().putBoolean(key, enabled).apply()
         }
@@ -81,7 +83,8 @@ class OverlayService : Service() {
             suppressClick = true
             Toast.makeText(this, R.string.bubble_hidden, Toast.LENGTH_SHORT).show()
             ToolSettings.prefs(this).edit().putBoolean(KEY_PLAY_ENABLED, false)
-                .putBoolean(KEY_ROTATE_ENABLED, false).putBoolean(KEY_BRIGHTNESS_ENABLED, false).apply()
+                .putBoolean(KEY_ROTATE_ENABLED, false).putBoolean(KEY_BRIGHTNESS_ENABLED, false)
+                .putBoolean(KEY_TABS_ENABLED, false).apply()
             stopSelf()
         }
     }
@@ -103,7 +106,8 @@ class OverlayService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             ToolSettings.prefs(this).edit().putBoolean(KEY_PLAY_ENABLED, false)
-                .putBoolean(KEY_ROTATE_ENABLED, false).putBoolean(KEY_BRIGHTNESS_ENABLED, false).apply()
+                .putBoolean(KEY_ROTATE_ENABLED, false).putBoolean(KEY_BRIGHTNESS_ENABLED, false)
+                .putBoolean(KEY_TABS_ENABLED, false).apply()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -143,7 +147,8 @@ class OverlayService : Service() {
             brightnessBubble?.remove()
             brightnessBubble = null
         }
-        if (bubble == null && rotateBubble == null && brightnessBubble == null && tapCount == 0) stopSelf()
+        val tabsEnabled = prefs.getBoolean(KEY_TABS_ENABLED, false) && TabControls.accessibilityEnabled(this)
+        if (bubble == null && rotateBubble == null && brightnessBubble == null && !tabsEnabled && tapCount == 0) stopSelf()
     }
 
     override fun onDestroy() {
@@ -486,9 +491,11 @@ class OverlayService : Service() {
         const val WIDGET_PLAY = "play"
         const val WIDGET_ROTATE = "rotate"
         const val WIDGET_BRIGHTNESS = "brightness"
+        const val WIDGET_TABS = "tabs"
         const val KEY_PLAY_ENABLED = "play_widget_enabled"
         const val KEY_ROTATE_ENABLED = "rotate_widget_enabled"
         const val KEY_BRIGHTNESS_ENABLED = "brightness_widget_enabled"
+        const val KEY_TABS_ENABLED = "tabs_widget_enabled"
         private const val KEY_X = "bubble_x"
         private const val KEY_Y = "bubble_y"
         private const val KEY_ROTATE_X = "rotate_bubble_x"
@@ -512,13 +519,14 @@ class OverlayService : Service() {
             WIDGET_PLAY -> KEY_PLAY_ENABLED
             WIDGET_ROTATE -> KEY_ROTATE_ENABLED
             WIDGET_BRIGHTNESS -> KEY_BRIGHTNESS_ENABLED
+            WIDGET_TABS -> KEY_TABS_ENABLED
             else -> error("Unknown widget: $widget")
         }
 
         fun anyWidgetEnabled(context: Context): Boolean {
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             return prefs.getBoolean(KEY_PLAY_ENABLED, false) || prefs.getBoolean(KEY_ROTATE_ENABLED, false) ||
-                prefs.getBoolean(KEY_BRIGHTNESS_ENABLED, false)
+                prefs.getBoolean(KEY_BRIGHTNESS_ENABLED, false) || prefs.getBoolean(KEY_TABS_ENABLED, false)
         }
     }
 }
