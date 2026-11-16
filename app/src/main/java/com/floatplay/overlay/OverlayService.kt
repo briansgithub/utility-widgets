@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
@@ -40,6 +42,23 @@ class OverlayService : Service() {
     private var rotateParams: WindowManager.LayoutParams? = null
     private var sessionsListener: MediaSessionManager.OnActiveSessionsChangedListener? = null
     private val controllerCallbacks = mutableListOf<Pair<MediaController, MediaController.Callback>>()
+    private var tapCount = 0
+    private val resolveTaps = Runnable {
+        val tool = listOf(WIDGET_PLAY, WIDGET_ROTATE).firstOrNull {
+            ToolSettings.taps(this, it) == tapCount
+        }
+        tapCount = 0
+        if (tool == null) Toast.makeText(this, R.string.unassigned_taps, Toast.LENGTH_SHORT).show()
+        else {
+            val prefs = ToolSettings.prefs(this)
+            val key = enabledKey(tool)
+            val enabled = !prefs.getBoolean(key, false)
+            if (enabled && tool == WIDGET_ROTATE && !Settings.System.canWrite(this)) {
+                Toast.makeText(this, R.string.rotation_permission_needed, Toast.LENGTH_LONG).show()
+            } else prefs.edit().putBoolean(key, enabled).apply()
+        }
+        syncTools()
+    }
     private var dragging = false
     private var suppressClick = false
     private var downRawX = 0f
@@ -48,9 +67,11 @@ class OverlayService : Service() {
     private var startY = 0
 
     private val longPressRunnable = Runnable {
-        if (!dragging && bubble != null) {
+        if (!dragging && (bubble != null || rotateBubble != null)) {
             suppressClick = true
             Toast.makeText(this, R.string.bubble_hidden, Toast.LENGTH_SHORT).show()
+            ToolSettings.prefs(this).edit().putBoolean(KEY_PLAY_ENABLED, false)
+                .putBoolean(KEY_ROTATE_ENABLED, false).apply()
             stopSelf()
         }
     }
@@ -71,6 +92,8 @@ class OverlayService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            ToolSettings.prefs(this).edit().putBoolean(KEY_PLAY_ENABLED, false)
+                .putBoolean(KEY_ROTATE_ENABLED, false).apply()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -78,6 +101,21 @@ class OverlayService : Service() {
             Log.w(TAG, "Overlay permission missing")
             stopSelf()
             return START_NOT_STICKY
+        }
+        if (intent?.action == ACTION_WIDGET_TAP) {
+            tapCount++
+            mainHandler.removeCallbacks(resolveTaps)
+            mainHandler.postDelayed(resolveTaps, ToolSettings.TAP_WINDOW_MS)
+            return START_NOT_STICKY
+        }
+        syncTools()
+        return START_STICKY
+    }
+
+    private fun syncTools() {
+        if (!overlayAllowed()) {
+            stopSelf()
+            return
         }
         val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
         if (prefs.getBoolean(KEY_PLAY_ENABLED, false)) {
@@ -88,8 +126,7 @@ class OverlayService : Service() {
         }
         if (prefs.getBoolean(KEY_ROTATE_ENABLED, false) && Settings.System.canWrite(this)) showRotateBubble()
         else removeRotateBubble()
-        if (!anyWidgetEnabled(this)) stopSelf()
-        return START_STICKY
+        if (bubble == null && rotateBubble == null && tapCount == 0) stopSelf()
     }
 
     override fun onDestroy() {
@@ -144,10 +181,11 @@ class OverlayService : Service() {
 
     private fun showBubble() {
         if (bubble != null) {
+            applyAppearance(bubble!!, params, WIDGET_PLAY)
             refreshIcon()
             return
         }
-        val size = dp(BUBBLE_DP)
+        val size = dp(ToolSettings.size(this, WIDGET_PLAY))
         params = WindowManager.LayoutParams(
             size,
             size,
@@ -161,6 +199,7 @@ class OverlayService : Service() {
 
         val view = LayoutInflater.from(this).inflate(R.layout.overlay_bubble, null)
         iconView = view.findViewById(R.id.icon)
+        applyAppearance(view, params, WIDGET_PLAY, false)
         view.setOnTouchListener(::onBubbleTouch)
         try {
             windowManager.addView(view, params)
@@ -174,8 +213,11 @@ class OverlayService : Service() {
     }
 
     private fun showRotateBubble() {
-        if (rotateBubble != null) return
-        val size = dp(BUBBLE_DP)
+        if (rotateBubble != null) {
+            applyAppearance(rotateBubble!!, rotateParams!!, WIDGET_ROTATE)
+            return
+        }
+        val size = dp(ToolSettings.size(this, WIDGET_ROTATE))
         val rotateParams = WindowManager.LayoutParams(
             size, size, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
@@ -191,6 +233,7 @@ class OverlayService : Service() {
         val view = LayoutInflater.from(this).inflate(R.layout.overlay_bubble, null)
         val icon = view.findViewById<ImageView>(R.id.icon)
         icon.setImageResource(R.drawable.ic_rotate)
+        applyAppearance(view, rotateParams, WIDGET_ROTATE, false)
         view.contentDescription = getString(R.string.toggle_auto_rotate)
         view.setOnTouchListener { touchedView, event -> onRotateBubbleTouch(touchedView, event) }
         try {
@@ -200,6 +243,27 @@ class OverlayService : Service() {
         } catch (error: RuntimeException) {
             Log.e(TAG, "Could not add the auto-rotate button", error)
         }
+    }
+
+    private fun applyAppearance(view: View, layout: WindowManager.LayoutParams, tool: String, attached: Boolean = true) {
+        val size = dp(ToolSettings.size(this, tool))
+        val color = ToolSettings.color(this, tool)
+        layout.width = size
+        layout.height = size
+        val bounds = windowManager.currentWindowMetrics.bounds
+        layout.x = layout.x.coerceIn(0, (bounds.width() - size).coerceAtLeast(0))
+        layout.y = layout.y.coerceIn(0, (bounds.height() - size).coerceAtLeast(0))
+        view.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(color)
+            setStroke(dp(2), Color.WHITE)
+        }
+        view.findViewById<ImageView>(R.id.icon).apply {
+            layoutParams = layoutParams.apply { width = size / 2; height = size / 2 }
+            setColorFilter(if (Color.luminance(color) > 0.4f) Color.BLACK else Color.WHITE)
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+        if (attached) windowManager.updateViewLayout(view, layout)
     }
 
     private fun onRotateBubbleTouch(view: View, event: MotionEvent): Boolean {
@@ -405,7 +469,7 @@ class OverlayService : Service() {
         private const val KEY_Y = "bubble_y"
         private const val KEY_ROTATE_X = "rotate_bubble_x"
         private const val KEY_ROTATE_Y = "rotate_bubble_y"
-        private const val BUBBLE_DP = 56
+        const val ACTION_WIDGET_TAP = "com.floatplay.overlay.HOME_WIDGET_TAP"
         const val ACTION_STOP = "com.floatplay.overlay.STOP"
 
         @Volatile
@@ -417,7 +481,7 @@ class OverlayService : Service() {
         }
 
         fun stop(context: Context) {
-            context.startService(Intent(context, OverlayService::class.java).setAction(ACTION_STOP))
+            context.stopService(Intent(context, OverlayService::class.java))
         }
 
         fun enabledKey(widget: String): String = if (widget == WIDGET_PLAY) KEY_PLAY_ENABLED else KEY_ROTATE_ENABLED

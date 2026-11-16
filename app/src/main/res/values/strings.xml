@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">FloatPlay</string>
-    <string name="widget_screen_description">Choose which floating buttons stay available over your apps.</string>
+    <string name="app_name">Float Tools</string>
+    <string name="widget_screen_description">Add the Float Tools home-screen widget. Defaults: tap once for play/pause or twice for rotate; tap again the same way to hide. Customize each tool below. Leave less than 450 ms between taps.</string>
     <string name="play_widget_title">Play / pause</string>
     <string name="play_widget_description">Control the active media player from any screen.</string>
     <string name="rotate_widget_title">Auto-rotate screen</string>
@@ -9,20 +9,33 @@
     <string name="widget_enabled">Enabled</string>
     <string name="overlay_permission_button">Allow display over other apps</string>
     <string name="rotation_permission_button">Allow changing system settings</string>
-    <string name="overlay_permission_needed">Allow FloatPlay to display over other apps to use floating buttons.</string>
-    <string name="rotation_permission_needed">Allow FloatPlay to change system settings to use Auto-rotate.</string>
+    <string name="overlay_permission_needed">Allow Float Tools to display over other apps to use floating buttons.</string>
+    <string name="rotation_permission_needed">Allow Float Tools to change system settings to use Auto-rotate.</string>
     <string name="all_permissions_ready">Required access is ready.</string>
     <string name="toggle_auto_rotate">Toggle Auto-rotate screen</string>
     <string name="auto_rotate_on">Auto-rotate enabled</string>
     <string name="auto_rotate_off">Auto-rotate disabled</string>
-    <string name="overlay_needed">Allow FloatPlay to display over other apps, then open it again.</string>
+    <string name="overlay_needed">Allow Float Tools to display over other apps, then open it again.</string>
     <string name="channel_name">Floating button</string>
-    <string name="channel_description">Shown while the play and pause button is on screen.</string>
-    <string name="notification_title">FloatPlay is on</string>
-    <string name="notification_text">Tap the FloatPlay icon again to remove the button.</string>
+    <string name="channel_description">Shown while floating utility buttons are on screen.</string>
+    <string name="notification_title">Float Tools is on</string>
+    <string name="notification_text">Tap this notification to hide all floating tools.</string>
     <string name="bubble_hidden">Floating button removed</string>
     <string name="nothing_playing">Nothing is playing</string>
     <string name="play_media">Play media</string>
     <string name="pause_media">Pause media</string>
     <string name="toggle_media">Play or pause</string>
+    <string name="home_widget_description">Tap to toggle floating tools. Configure tap counts in Float Tools.</string>
+    <string name="add_home_widget">Add home-screen widget</string>
+    <string name="add_widget_manually">Long-press your home screen, choose Widgets, then Float Tools.</string>
+    <string name="tap_count">Home-screen widget tap count</string>
+    <string name="tap_count_value">%1$d tap(s)</string>
+    <string name="tap_count_conflict">Each tool needs a different tap count. Change the other tool first.</string>
+    <string name="button_size">Button size: %1$d dp</string>
+    <string name="size_description">Floating button size, 40 to 96 dp</string>
+    <string name="button_color">Button color (#RRGGBB)</string>
+    <string name="color_preview">Color preview</string>
+    <string name="apply_color">Apply color</string>
+    <string name="invalid_color">Enter a color such as #167D8D.</string>
+    <string name="unassigned_taps">No tool assigned to this tap count.</string>
 </resources>
