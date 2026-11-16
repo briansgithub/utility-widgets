@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Float Tools</string>
-    <string name="widget_screen_description">Add the Float Tools home-screen widget. Defaults: tap once for play/pause or twice for rotate; tap again the same way to hide. Customize each tool below. Leave less than 450 ms between taps.</string>
+    <string name="widget_screen_description">Add the Float Tools home-screen widget. Defaults: tap once for play/pause, twice for rotate, or three times for brightness; tap again the same way to hide. Customize each tool below. Leave less than 450 ms between taps.</string>
     <string name="play_widget_title">Play / pause</string>
     <string name="play_widget_description">Control the active media player from any screen.</string>
     <string name="rotate_widget_title">Auto-rotate screen</string>
@@ -32,18 +32,38 @@
     <string name="tap_count_value">%1$d tap(s)</string>
     <string name="tap_count_conflict">Each tool needs a different tap count. Change the other tool first.</string>
     <string name="button_size">Button size: %1$d dp</string>
-    <string name="size_description">Floating button size, 40 to 96 dp</string>
+    <string name="size_description">Floating button size, %1$d to %2$d dp</string>
     <string name="button_color">Button color (#RRGGBB)</string>
     <string name="color_preview">Color preview</string>
     <string name="apply_color">Apply color</string>
     <string name="invalid_color">Enter a color such as #167D8D.</string>
     <string name="unassigned_taps">No tool assigned to this tap count.</string>
     <string name="brightness_widget_title">Brightness</string>
-    <string name="brightness_widget_description" formatted="false">Turn the dial to adjust 0–100%. Tap to toggle auto brightness. Double-tap and hold, then drag to move.</string>
+    <string name="brightness_widget_description" formatted="false">Drag to move. Double-tap and drag around the dial to adjust brightness. Tap to toggle automatic brightness. The lowest range gradually adds Extra Dim.</string>
     <string name="brightness_auto_on">Auto on</string>
     <string name="brightness_auto_off">Auto off</string>
     <string name="brightness_toggle_auto">Toggle auto brightness</string>
-    <string name="brightness_dial_state">Brightness: %1$d%%, %2$s. Turn to adjust; double-tap and drag to move.</string>
+    <string name="brightness_dial_state">Brightness: %1$d%%, %2$s. Drag to move; double-tap and turn to adjust; the lowest range adds Extra Dim.</string>
     <string name="brightness_percent">%1$d%%</string>
     <string name="brightness_failed">Could not change brightness. Check system settings access.</string>
+    <string name="media_access_button">Allow playback-state access</string>
+    <string name="media_access_needed">For precise play/pause icons, allow Float Tools notification access. Without it, the icon follows music audio activity.</string>
+    <string name="choose_color">Choose button color</string>
+    <string name="color_presets">Preset colors</string>
+    <string name="color_hue">Hue: %1$dÂ°</string>
+    <string name="color_saturation">Saturation: %1$d%%</string>
+    <string name="color_lightness">Brightness: %1$d%%</string>
+    <string name="color_hex">Hex color</string>
+    <string name="color_apply">Use color</string>
+    <string name="color_cancel">Cancel</string>
+    <string name="color_selected">Selected</string>
+    <string name="color_teal">Teal</string>
+    <string name="color_blue">Blue</string>
+    <string name="color_purple">Purple</string>
+    <string name="color_pink">Pink</string>
+    <string name="color_red">Red</string>
+    <string name="color_orange">Orange</string>
+    <string name="color_green">Green</string>
+    <string name="color_white">White</string>
+    <string name="extra_dim_access_needed">Extra Dim control needs one-time setup through a connected computer.</string>
 </resources>

@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.os.Bundle
 import android.view.GestureDetector
@@ -17,7 +18,7 @@ import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Turn to adjust brightness; double-tap and drag to move the overlay. */
+/** Drag to move; double-tap then turn to adjust brightness. */
 class BrightnessDialView(context: Context) : View(context) {
     var onLevelChanged: (Int) -> Unit = {}
     var onMove: (Int, Int) -> Unit = { _, _ -> }
@@ -28,18 +29,18 @@ class BrightnessDialView(context: Context) : View(context) {
     private var downX = 0f
     private var downY = 0f
     private var moved = false
-    private var movingWidget = false
+    private var adjustingBrightness = false
     private var lastAngle: Double? = null
     private var turningLevel = 50f
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(event: MotionEvent): Boolean = true
         override fun onSingleTapConfirmed(event: MotionEvent): Boolean {
-            performClick()
+            if (!moved) performClick()
             return true
         }
         override fun onDoubleTap(event: MotionEvent): Boolean = true
         override fun onDoubleTapEvent(event: MotionEvent): Boolean {
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) movingWidget = true
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) adjustingBrightness = true
             return true
         }
     }).apply { setIsLongpressEnabled(false) }
@@ -47,7 +48,8 @@ class BrightnessDialView(context: Context) : View(context) {
     init { isClickable = true; isFocusable = true }
 
     fun setState(percent: Int, automatic: Boolean) {
-        level = percent.coerceIn(0, 100)
+        level = if (isPressed && adjustingBrightness) turningLevel.roundToInt().coerceIn(0, 100)
+            else percent.coerceIn(0, 100)
         auto = automatic
         contentDescription = context.getString(R.string.brightness_dial_state, level,
             context.getString(if (auto) R.string.brightness_auto_on else R.string.brightness_auto_off))
@@ -56,9 +58,12 @@ class BrightnessDialView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val cx = width / 2f
-        val cy = height / 2f
-        val radius = minOf(width, height) / 2f
+        canvas.save()
+        // Draw in a fixed logical space so every detail scales with the overlay.
+        canvas.scale(width / dp(96), height / dp(96))
+        val cx = dp(48)
+        val cy = dp(48)
+        val radius = dp(48)
         paint.style = Paint.Style.FILL
         paint.color = Color.rgb(22, 57, 61)
         canvas.drawCircle(cx, cy, radius - dp(1), paint)
@@ -86,14 +91,32 @@ class BrightnessDialView(context: Context) : View(context) {
         canvas.drawCircle(cx + cos(angle).toFloat() * trackRadius,
             cy + sin(angle).toFloat() * trackRadius, dp(4), paint)
         paint.color = Color.WHITE
-        paint.textAlign = Paint.Align.CENTER
-        paint.textSize = dp(17)
-        paint.isFakeBoldText = true
-        canvas.drawText(context.getString(R.string.brightness_percent, level), cx, cy + dp(2), paint)
-        paint.isFakeBoldText = false
-        paint.textSize = dp(8)
-        canvas.drawText(context.getString(if (auto) R.string.brightness_auto_on else R.string.brightness_auto_off),
-            cx, cy + dp(14), paint)
+        canvas.save()
+        canvas.scale(0.65f, 0.65f, cx, cy)
+        // Sun = manual; sun inside a circular arrow = automatic. No visible text.
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(cx, cy, dp(5), paint)
+        paint.strokeWidth = dp(2)
+        for (ray in 0 until 8) {
+            val a = Math.toRadians(ray * 45.0)
+            canvas.drawLine(cx + cos(a).toFloat() * dp(8), cy + sin(a).toFloat() * dp(8),
+                cx + cos(a).toFloat() * dp(11), cy + sin(a).toFloat() * dp(11), paint)
+        }
+        if (auto) {
+            paint.style = Paint.Style.STROKE
+            paint.color = Color.rgb(113, 212, 237)
+            canvas.drawArc(RectF(cx - dp(17), cy - dp(17), cx + dp(17), cy + dp(17)),
+                -60f, 300f, false, paint)
+            paint.style = Paint.Style.FILL
+            canvas.drawPath(Path().apply {
+                moveTo(cx - (8.5f * resources.displayMetrics.density), cy - (14.7f * resources.displayMetrics.density))
+                lineTo(cx - dp(14), cy - dp(14))
+                lineTo(cx - dp(10), cy - dp(9))
+                close()
+            }, paint)
+        }
+        canvas.restore()
+        canvas.restore()
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -106,7 +129,7 @@ class BrightnessDialView(context: Context) : View(context) {
                 downX = event.rawX
                 downY = event.rawY
                 moved = false
-                movingWidget = false
+                adjustingBrightness = false
                 lastAngle = angle
                 turningLevel = level.toFloat()
                 isPressed = true
@@ -114,8 +137,10 @@ class BrightnessDialView(context: Context) : View(context) {
             MotionEvent.ACTION_MOVE -> {
                 val dx = event.rawX - downX
                 val dy = event.rawY - downY
-                if (hypot(dx, dy) > ViewConfiguration.get(context).scaledTouchSlop) moved = true
-                if (moved && movingWidget) {
+                if (hypot(dx, dy) > ViewConfiguration.get(context).scaledTouchSlop) {
+                    moved = true
+                }
+                if (moved && !adjustingBrightness) {
                     onMove(dx.roundToInt(), dy.roundToInt())
                     // Keep offsets relative to the last move because the window itself moved.
                     downX = event.rawX
@@ -135,12 +160,13 @@ class BrightnessDialView(context: Context) : View(context) {
             }
             MotionEvent.ACTION_UP -> {
                 isPressed = false
-                if (moved && movingWidget) onMoveFinished()
+                if (moved && !adjustingBrightness) onMoveFinished()
                 lastAngle = null
+
             }
             MotionEvent.ACTION_CANCEL -> {
                 isPressed = false
-                if (moved && movingWidget) onMoveFinished()
+                if (moved && !adjustingBrightness) onMoveFinished()
                 lastAngle = null
             }
             else -> return false

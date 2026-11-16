@@ -30,7 +30,10 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        if (::playSwitch.isInitialized) refreshControls()
+        if (::playSwitch.isInitialized) {
+            refreshControls()
+            if (overlayAllowed() && OverlayService.anyWidgetEnabled(this)) OverlayService.start(this)
+        }
     }
 
     private fun buildScreen() {
@@ -71,6 +74,12 @@ class MainActivity : Activity() {
             text = getString(R.string.rotation_permission_button)
             setOnClickListener {
                 startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:$packageName")))
+            }
+        })
+        root.addView(Button(this).apply {
+            text = getString(R.string.media_access_button)
+            setOnClickListener {
+                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             }
         })
         root.addView(Button(this).apply {
@@ -118,8 +127,12 @@ class MainActivity : Activity() {
         })
         val toggle = Switch(this).apply { text = getString(R.string.widget_enabled) }
         card.addView(toggle)
-        val tool = if (title == R.string.play_widget_title) OverlayService.WIDGET_PLAY else OverlayService.WIDGET_ROTATE
-        if (title != R.string.brightness_widget_title) addSettings(card, tool)
+        val tool = when (title) {
+            R.string.play_widget_title -> OverlayService.WIDGET_PLAY
+            R.string.rotate_widget_title -> OverlayService.WIDGET_ROTATE
+            else -> OverlayService.WIDGET_BRIGHTNESS
+        }
+        addSettings(card, tool)
         root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
         return toggle
     }
@@ -145,62 +158,35 @@ class MainActivity : Activity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val count = position + 1
                 if (count == ToolSettings.taps(this@MainActivity, tool)) return
-                val other = if (tool == OverlayService.WIDGET_PLAY) OverlayService.WIDGET_ROTATE else OverlayService.WIDGET_PLAY
-                if (count == ToolSettings.taps(this@MainActivity, other)) {
+                if (ToolSettings.tools.any { it != tool && count == ToolSettings.taps(this@MainActivity, it) }) {
                     Toast.makeText(this@MainActivity, R.string.tap_count_conflict, Toast.LENGTH_LONG).show()
                     taps.setSelection(ToolSettings.taps(this@MainActivity, tool) - 1)
                 } else prefs.edit().putInt("${tool}_taps", count).apply()
             }
         }
+        val minimumSize = ToolSettings.minSize(tool)
+        val maximumSize = ToolSettings.maxSize(tool)
         val sizeLabel = label(getString(R.string.button_size, ToolSettings.size(this, tool)))
         card.addView(SeekBar(this).apply {
-            max = 56
-            progress = ToolSettings.size(this@MainActivity, tool) - 40
-            contentDescription = getString(R.string.size_description)
+            max = maximumSize - minimumSize
+            progress = ToolSettings.size(this@MainActivity, tool) - minimumSize
+            contentDescription = getString(R.string.size_description, minimumSize, maximumSize)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onStartTrackingTouch(bar: SeekBar?) = Unit
                 override fun onStopTrackingTouch(bar: SeekBar?) = Unit
                 override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
                     if (!fromUser) return
-                    val size = progress + 40
+                    val size = progress + minimumSize
                     sizeLabel.text = getString(R.string.button_size, size)
                     prefs.edit().putInt("${tool}_size", size).apply()
                     updateAppearance()
                 }
             })
         })
-        label(getString(R.string.button_color))
-        val swatch = TextView(this).apply {
-            text = getString(R.string.color_preview)
-            gravity = Gravity.CENTER
-            setPadding(0, dp(12), 0, dp(12))
-        }
-        card.addView(swatch)
-        val colorInput = EditText(this).apply {
-            setSingleLine(true)
-            setText(String.format("#%06X", ToolSettings.color(this@MainActivity, tool) and 0xFFFFFF))
-            hint = "#167D8D"
-            contentDescription = getString(R.string.button_color)
-        }
-        card.addView(colorInput)
-        fun preview() {
-            val color = ToolSettings.color(this, tool)
-            swatch.background = GradientDrawable().apply { setColor(color); cornerRadius = dp(12).toFloat() }
-            swatch.setTextColor(if (Color.luminance(color) > 0.4f) Color.BLACK else Color.WHITE)
-        }
-        preview()
-        card.addView(Button(this).apply {
-            text = getString(R.string.apply_color)
-            setOnClickListener {
-                val value = colorInput.text.toString().trim()
-                if (!Regex("#[0-9a-fA-F]{6}").matches(value)) {
-                    colorInput.error = getString(R.string.invalid_color)
-                } else {
-                    prefs.edit().putInt("${tool}_color", Color.parseColor(value)).apply()
-                    preview()
-                    updateAppearance()
-                }
-            }
+        if (tool == OverlayService.WIDGET_BRIGHTNESS) return
+        card.addView(FloatingColorPicker(this, tool) { color ->
+            prefs.edit().putInt("${tool}_color", color).apply()
+            updateAppearance()
         })
     }
 
@@ -224,6 +210,7 @@ class MainActivity : Activity() {
         accessStatus.text = when {
             !overlayReady -> getString(R.string.overlay_permission_needed)
             !rotateReady -> getString(R.string.rotation_permission_needed)
+            !listenerEnabled() -> getString(R.string.media_access_needed)
             else -> getString(R.string.all_permissions_ready)
         }
         playSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_PLAY, enabled) }

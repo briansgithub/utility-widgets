@@ -45,7 +45,7 @@ class OverlayService : Service() {
     private val controllerCallbacks = mutableListOf<Pair<MediaController, MediaController.Callback>>()
     private var tapCount = 0
     private val resolveTaps = Runnable {
-        val tool = listOf(WIDGET_PLAY, WIDGET_ROTATE).firstOrNull {
+        val tool = ToolSettings.tools.firstOrNull {
             ToolSettings.taps(this, it) == tapCount
         }
         tapCount = 0
@@ -54,7 +54,7 @@ class OverlayService : Service() {
             val prefs = ToolSettings.prefs(this)
             val key = enabledKey(tool)
             val enabled = !prefs.getBoolean(key, false)
-            if (enabled && tool == WIDGET_ROTATE && !Settings.System.canWrite(this)) {
+            if (enabled && tool != WIDGET_PLAY && !Settings.System.canWrite(this)) {
                 Toast.makeText(this, R.string.rotation_permission_needed, Toast.LENGTH_LONG).show()
             } else prefs.edit().putBoolean(key, enabled).apply()
         }
