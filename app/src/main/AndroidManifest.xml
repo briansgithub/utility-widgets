@@ -31,7 +31,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Keeps a floating play and pause button on screen over other apps." />
+                android:value="Keeps floating media, auto-rotate, and brightness controls available over other apps." />
         </service>
 
         <service
