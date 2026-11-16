@@ -21,25 +21,33 @@ internal object PhotosCrop {
 
     fun isPanTarget(id: String?): Boolean = leaf(id) in panTargets
 
-    /**
-     * Smallest rotation the crop slider can represent.
-     * A span of 90 or less is the degree dial (-45° to 45°), whose step is a tenth of a degree.
-     * Wider ranges are integer progress, so one unit is the step.
-     */
-    fun minimumRotationStep(min: Float, max: Float): Float {
-        val span = max - min
-        if (span <= 0f) return 1f
-        return if (span <= 90f) 0.1f else 1f
+    /** One pixel of movement for a rotate creep or a photo drag. */
+    const val STEP_PX = 1
+
+    /** Clockwise creeps left along the straighten bar; counterclockwise creeps right. */
+    fun rotationCreepX(clockwise: Boolean): Int = if (clockwise) -STEP_PX else STEP_PX
+
+    fun isCropChrome(label: String): Boolean {
+        val text = label.trim().lowercase()
+        return text.contains("rotate ninety degrees") ||
+            text.contains("crop to aspect ratio") ||
+            text.contains("perspective crop")
     }
 
     fun cropSession(sliderIds: List<String>, labels: List<String>, hasRange: Boolean): Boolean {
         if (sliderIds.any { isRotationSlider(it) }) return true
+        if (labels.any { isCropChrome(it) }) return true
+        val named = labels.map { it.trim() }
+        if (named.any { it.equals("Straighten", ignoreCase = true) } &&
+            named.any { it.equals("Perspective", ignoreCase = true) || it.equals("Rotate", ignoreCase = true) }
+        ) {
+            return true
+        }
         if (!hasRange) return false
-        return labels.any { label ->
-            val text = label.trim()
-            text.equals("Crop", ignoreCase = true) ||
-                text.equals("Straighten", ignoreCase = true) ||
-                text.equals("Rotate", ignoreCase = true)
+        return named.any { label ->
+            label.equals("Crop", ignoreCase = true) ||
+                label.equals("Straighten", ignoreCase = true) ||
+                label.equals("Rotate", ignoreCase = true)
         }
     }
 }

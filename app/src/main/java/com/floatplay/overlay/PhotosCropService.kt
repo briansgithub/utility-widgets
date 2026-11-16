@@ -10,7 +10,6 @@ import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
@@ -35,6 +34,7 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
     private var panel: GridLayout? = null
     private var position: WindowManager.LayoutParams? = null
     private var lastWalk = 0L
+    private var openingStraighten = false
 
     private val refresh = Runnable { updateVisibility(force = true) }
 
@@ -222,29 +222,46 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
         val root = activeApp() ?: return
         val slider = findSlider(root)
         if (slider == null) {
+            val opener = findStraightenOpener(root)
+            if (!openingStraighten && opener?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true) {
+                openingStraighten = true
+                handler.postDelayed({
+                    openingStraighten = false
+                    nudgeRotation(clockwise)
+                }, 350)
+            } else {
+                message(getString(R.string.photos_slider_missing))
+            }
+            return
+        }
+        openingStraighten = false
+        val bounds = Rect()
+        slider.getBoundsInScreen(bounds)
+        if (bounds.width() < 2 || bounds.height() < 2) {
             message(getString(R.string.photos_slider_missing))
             return
         }
-        val range = slider.rangeInfo
-        if (range != null) {
-            val step = PhotosCrop.minimumRotationStep(range.min, range.max)
-            val next = (range.current + if (clockwise) step else -step).coerceIn(range.min, range.max)
-            if (next == range.current) {
-                message(getString(R.string.photos_at_limit))
-                return
+        val sign = PhotosCrop.rotationCreepX(clockwise).toFloat()
+        val x = bounds.exactCenterX()
+        val y = bounds.exactCenterY()
+        val engage = (ViewConfiguration.get(this).scaledTouchSlop + 1).toFloat()
+        val path = Path().apply {
+            moveTo(x, y)
+            val above = y - bounds.top
+            val below = bounds.bottom - y
+            when {
+                above >= engage + 2f -> {
+                    lineTo(x, y - engage)
+                    lineTo(x + sign, y - engage)
+                }
+                below >= engage + 2f -> {
+                    lineTo(x, y + engage)
+                    lineTo(x + sign, y + engage)
+                }
+                else -> lineTo(x + sign, y)
             }
-            val args = Bundle().apply {
-                putFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE, next)
-            }
-            val setProgress = AccessibilityNodeInfo.AccessibilityAction.ACTION_SET_PROGRESS.id
-            if (slider.performAction(setProgress, args)) return
         }
-        val scroll = if (clockwise) {
-            AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
-        } else {
-            AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
-        }
-        if (!slider.performAction(scroll)) message(getString(R.string.photos_slider_missing))
+        dispatch(path, 220L)
     }
 
     private fun nudge(xSign: Int, ySign: Int) {
@@ -260,14 +277,23 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
             message(getString(R.string.photos_pan_missing))
             return
         }
-        val distance = (ViewConfiguration.get(this).scaledTouchSlop + 1).toFloat()
-        val startX = bounds.exactCenterX()
-        val startY = bounds.exactCenterY()
+        val distance = PhotosCrop.STEP_PX.toFloat()
+        var startX = bounds.exactCenterX()
+        var startY = bounds.exactCenterY()
+        panelScreenRect()?.let { panelBounds ->
+            if (panelBounds.contains(startX.toInt(), startY.toInt())) {
+                startX = (panelBounds.left - dp(24)).toFloat().coerceAtLeast(bounds.left + distance)
+            }
+        }
         val path = Path().apply {
             moveTo(startX, startY)
             lineTo(startX + xSign * distance, startY + ySign * distance)
         }
-        val stroke = GestureDescription.StrokeDescription(path, 0, 40)
+        dispatch(path, 160L)
+    }
+
+    private fun dispatch(path: Path, durationMs: Long) {
+        val stroke = GestureDescription.StrokeDescription(path, 0, durationMs)
         val gesture = GestureDescription.Builder().addStroke(stroke).build()
         val accepted = dispatchGesture(gesture, null, handler)
         if (!accepted) message(getString(R.string.photos_gesture_rejected))
@@ -276,26 +302,77 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
     private fun findSlider(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         var match: AccessibilityNodeInfo? = null
         walk(root) { node ->
-            if (match == null && PhotosCrop.isRotationSlider(node.viewIdResourceName)) match = node
-        }
-        if (match != null) return match
-        walk(root) { node ->
-            if (match == null && node.rangeInfo != null && node.isVisibleToUser) {
-                val label = "${node.contentDescription ?: ""} ${node.text ?: ""}"
-                if (label.contains("straighten", ignoreCase = true) || label.contains("rotate", ignoreCase = true)) {
-                    match = node
-                }
+            if (match != null) return@walk
+            val label = "${node.contentDescription ?: ""} ${node.text ?: ""}"
+            val seekBar = node.className?.contains("SeekBar", ignoreCase = true) == true
+            if (PhotosCrop.isRotationSlider(node.viewIdResourceName) ||
+                (seekBar && label.contains("straighten", ignoreCase = true)) ||
+                (node.rangeInfo != null && (label.contains("straighten", ignoreCase = true) || label.contains("rotate", ignoreCase = true)))
+            ) {
+                match = node
             }
         }
         return match
     }
 
-    private fun findPanTarget(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        var match: AccessibilityNodeInfo? = null
+    private fun findStraightenOpener(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var described: AccessibilityNodeInfo? = null
         walk(root) { node ->
-            if (match == null && PhotosCrop.isPanTarget(node.viewIdResourceName)) match = node
+            if (described != null) return@walk
+            val desc = node.contentDescription?.toString()?.trim().orEmpty()
+            val text = node.text?.toString()?.trim().orEmpty()
+            val seekBar = node.className?.contains("SeekBar", ignoreCase = true) == true
+            if (!seekBar && node.rangeInfo == null &&
+                (desc.equals("Straighten", ignoreCase = true) || text.equals("Straighten", ignoreCase = true))
+            ) {
+                described = node
+            }
         }
-        return match
+        val target = described ?: return null
+        if (target.isClickable) return target
+        val marker = Rect().also { target.getBoundsInScreen(it) }
+        var button: AccessibilityNodeInfo? = null
+        walk(root) { node ->
+            if (button == null && node.isClickable) {
+                val bounds = Rect()
+                node.getBoundsInScreen(bounds)
+                if (bounds.contains(marker.centerX(), marker.centerY())) button = node
+            }
+        }
+        return button ?: target
+    }
+
+    private fun findPanTarget(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var labeled: AccessibilityNodeInfo? = null
+        var largest: AccessibilityNodeInfo? = null
+        var largestArea = 0
+        val screen = Rect().also { root.getBoundsInScreen(it) }
+        walk(root) { node ->
+            if (labeled == null && PhotosCrop.isPanTarget(node.viewIdResourceName)) labeled = node
+            val desc = node.contentDescription?.toString().orEmpty()
+            if (labeled == null && (desc.contains("image view", ignoreCase = true) ||
+                    desc.contains("compare to original", ignoreCase = true))
+            ) {
+                labeled = node
+            }
+            val bounds = Rect()
+            node.getBoundsInScreen(bounds)
+            val area = bounds.width() * bounds.height()
+            val photoSized = bounds.width() in screen.width() * 4 / 10..screen.width() * 19 / 20 &&
+                bounds.height() in screen.height() / 5..screen.height() * 4 / 5
+            if (node.text.isNullOrBlank() && photoSized && area > largestArea) {
+                largestArea = area
+                largest = node
+            }
+        }
+        return labeled ?: largest
+    }
+
+    private fun panelScreenRect(): Rect? {
+        val host = panel ?: return null
+        val location = IntArray(2)
+        host.getLocationOnScreen(location)
+        return Rect(location[0], location[1], location[0] + host.width, location[1] + host.height)
     }
 
     private fun walk(root: AccessibilityNodeInfo, visit: (AccessibilityNodeInfo) -> Unit) {

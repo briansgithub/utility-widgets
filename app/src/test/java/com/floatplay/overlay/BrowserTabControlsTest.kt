@@ -12,8 +12,19 @@ class BrowserTabControlsTest {
     @Test fun reversedRightSelectsNext() = assertFalse(TabDirection.previous(false, true))
     @Test fun defaultTabToolUsesFourTaps() = assertEquals(4, ToolSettings.defaultTabsTapCount(setOf(1, 2, 3)))
     @Test fun existingFourTapAssignmentIsPreserved() = assertEquals(5, ToolSettings.defaultTabsTapCount(setOf(1, 2, 4)))
+    @Test fun cropToolChromeShowsThePad() = assertTrue(PhotosCrop.cropSession(
+        emptyList(),
+        listOf("Crop", "Straighten", "Rotate", "Perspective", "Rotate ninety degrees counter-clockwise"),
+        false,
+    ))
+    @Test fun photoLibraryDoesNotShowThePad() = assertFalse(PhotosCrop.cropSession(emptyList(), listOf("Crop"), false))
     @Test fun defaultPhotoToolUsesFiveTaps() = assertEquals(5, ToolSettings.defaultPhotosTapCount(setOf(1, 2, 3, 4)))
     @Test fun photoToolAvoidsAssignedFiveTaps() = assertEquals(4, ToolSettings.defaultPhotosTapCount(setOf(1, 2, 3, 5)))
+    @Test fun rotationAndTranslateUseOnePixel() {
+        assertEquals(1, PhotosCrop.STEP_PX)
+        assertEquals(-1, PhotosCrop.rotationCreepX(clockwise = true))
+        assertEquals(1, PhotosCrop.rotationCreepX(clockwise = false))
+    }
     @Test fun gestureSafetyRegression() = BubbleGesturesCheck.main(emptyArray())
     @Test fun nativeBrowserMatchingRegression() = BrowserRulesCheck.main(emptyArray())
     @Test fun tabToolUsesSameSizeRangeAsMedia() {
