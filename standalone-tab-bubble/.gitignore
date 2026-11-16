@@ -1,0 +1,10 @@
+.gradle/
+.android/
+.debug/
+**/build/
+local.properties
+*.log
+
+dist/
+*.apk
+*.aab
