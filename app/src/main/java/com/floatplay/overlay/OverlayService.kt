@@ -60,6 +60,15 @@ class OverlayService : Service() {
         }
         syncTools()
     }
+    // Session callbacks provide immediate updates. Also sample audio output for
+    // players controlled by media keys or when notification access is unavailable.
+    private val playbackRefresh = object : Runnable {
+        override fun run() {
+            if (bubble == null) return
+            refreshIcon()
+            mainHandler.postDelayed(this, 750)
+        }
+    }
     private var dragging = false
     private var suppressClick = false
     private var downRawX = 0f
@@ -219,6 +228,8 @@ class OverlayService : Service() {
             return
         }
         bubble = view
+        mainHandler.removeCallbacks(playbackRefresh)
+        mainHandler.post(playbackRefresh)
         refreshIcon()
     }
 
@@ -448,6 +459,7 @@ class OverlayService : Service() {
     }
 
     private fun removeBubble() {
+        mainHandler.removeCallbacks(playbackRefresh)
         bubble?.let { view ->
             try {
                 windowManager.removeView(view)

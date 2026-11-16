@@ -22,6 +22,7 @@ object MediaToggle {
     }
 
     fun activeSessions(context: Context): List<MediaController> {
+        if (!context.listenerEnabled()) return emptyList()
         val manager = sessionManager(context) ?: return emptyList()
         return try {
             manager.getActiveSessions(listenerComponent(context))
@@ -32,7 +33,11 @@ object MediaToggle {
     }
 
     fun isPlaying(context: Context): Boolean {
-        return activeSessions(context).any { it.isActivePlayback() }
+        val sessions = activeSessions(context)
+        if (sessions.isNotEmpty()) return sessions.any { it.isActivePlayback() }
+        // Media-key control also works without session access. Reflect actual music
+        // output instead of leaving the button permanently on the play icon.
+        return context.getSystemService(AudioManager::class.java)?.isMusicActive == true
     }
 
     /**
