@@ -5,6 +5,7 @@ import android.accessibilityservice.GestureDescription;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.PixelFormat;
+import android.graphics.Color;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
@@ -77,8 +78,15 @@ public class TabAccessibilityService extends AccessibilityService implements Sha
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
     private void showBubble() {
         if (bubble != null) return;
-        int size = dp(56);
-        position = new WindowManager.LayoutParams(dp(112), dp(104), WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+        int circleDp = TabControls.size(this);
+        float scale = circleDp / 56f;
+        int size = dp(circleDp);
+        int stripHeight = Math.max(dp(32), Math.round(dp(44) * scale));
+        int gap = Math.max(dp(2), Math.round(dp(4) * scale));
+        int color = TabControls.color(this);
+        int textColor = Color.luminance(color) > 0.55f ? 0xff102030 : 0xffffffff;
+        int border = Math.max(1, Math.round(dp(2) * scale));
+        position = new WindowManager.LayoutParams(size * 2, size + stripHeight + gap, WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT);
         position.gravity = Gravity.TOP | Gravity.LEFT;
@@ -92,26 +100,26 @@ public class TabAccessibilityService extends AccessibilityService implements Sha
         widget.setGravity(Gravity.CENTER_HORIZONTAL);
         widget.setClipChildren(false);
         bubble = new Button(this);
-        bubble.setText("×"); bubble.setTextSize(30); bubble.setTextColor(0xffffffff);
+        bubble.setText("×"); bubble.setTextSize(30 * scale); bubble.setTextColor(textColor);
         bubble.setContentDescription("Close current browser tab. Drag this circle to move the whole widget.");
         bubble.setPadding(0, 0, 0, 0); bubble.setMinWidth(0); bubble.setMinHeight(0);
         GradientDrawable background = new GradientDrawable();
-        background.setColor(0xff275d5a); background.setShape(GradientDrawable.OVAL);
-        background.setStroke(dp(2), 0xffe4f4ee); bubble.setBackground(background);
-        bubble.setElevation(dp(6));
+        background.setColor(color); background.setShape(GradientDrawable.OVAL);
+        background.setStroke(border, 0xffe4f4ee); bubble.setBackground(background);
+        bubble.setElevation(dp(6) * scale);
         bubble.setOnClickListener(v -> beginClose());
         widget.addView(bubble, new LinearLayout.LayoutParams(size, size));
         attachTouch(bubble, BubbleGestures.Zone.CIRCLE);
         TextView strip = new TextView(this);
-        strip.setText("‹  Swipe tabs  ›"); strip.setTextSize(14); strip.setTextColor(0xffffffff);
+        strip.setText("‹  Swipe tabs  ›"); strip.setTextSize(14 * scale); strip.setTextColor(textColor);
         strip.setGravity(Gravity.CENTER);
         strip.setContentDescription(getString(toolPrefs.getBoolean(TabControls.REVERSE_SWIPE, false)
                 ? R.string.tab_strip_reversed : R.string.tab_strip_default));
         GradientDrawable stripBackground = new GradientDrawable();
-        stripBackground.setColor(0xff275d5a); stripBackground.setCornerRadius(dp(8));
-        stripBackground.setStroke(dp(2), 0xffe4f4ee); strip.setBackground(stripBackground);
-        LinearLayout.LayoutParams stripLayout = new LinearLayout.LayoutParams(dp(112), dp(44));
-        stripLayout.topMargin = dp(4);
+        stripBackground.setColor(color); stripBackground.setCornerRadius(dp(8) * scale);
+        stripBackground.setStroke(border, 0xffe4f4ee); strip.setBackground(stripBackground);
+        LinearLayout.LayoutParams stripLayout = new LinearLayout.LayoutParams(size * 2, stripHeight);
+        stripLayout.topMargin = gap;
         widget.addView(strip, stripLayout);
         attachTouch(strip, BubbleGestures.Zone.STRIP);
         manager.addView(widget, position);
@@ -315,7 +323,9 @@ public class TabAccessibilityService extends AccessibilityService implements Sha
             if (toolPrefs.getBoolean(OverlayService.KEY_TABS_ENABLED, false)) updateVisibility();
             else { cancel(); hideBubble(); }
         }
-        if (TabControls.REVERSE_SWIPE.equals(key)) { cancel(); hideBubble(); updateVisibility(); }
+        if (TabControls.REVERSE_SWIPE.equals(key) || "tabs_size".equals(key) || "tabs_color".equals(key)) {
+            cancel(); hideBubble(); updateVisibility();
+        }
     }
     @Override public void onConfigurationChanged(Configuration config) {
         super.onConfigurationChanged(config);

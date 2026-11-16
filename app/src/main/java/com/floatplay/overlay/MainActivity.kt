@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.widget.*
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
@@ -22,7 +21,6 @@ class MainActivity : Activity() {
     private lateinit var rotateSwitch: Switch
     private lateinit var brightnessSwitch: Switch
     private lateinit var tabsSwitch: Switch
-    private lateinit var accessStatus: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,15 +38,9 @@ class MainActivity : Activity() {
     private fun buildScreen() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(36), dp(24), dp(24))
+            setPadding(dp(24), dp(8), dp(24), dp(24))
             setBackgroundColor(0xFF10151C.toInt())
         }
-        root.addView(TextView(this).apply {
-            text = getString(R.string.app_name)
-            textSize = 26f
-            setTextColor(0xFFF2F5FA.toInt())
-            setPadding(0, 0, 0, dp(8))
-        })
         root.addView(TextView(this).apply {
             text = getString(R.string.widget_screen_description)
             textSize = 15f
@@ -60,30 +52,6 @@ class MainActivity : Activity() {
         rotateSwitch = addWidgetRow(root, R.string.rotate_widget_title, R.string.rotate_widget_description)
         brightnessSwitch = addWidgetRow(root, R.string.brightness_widget_title, R.string.brightness_widget_description)
         tabsSwitch = addWidgetRow(root, R.string.tabs_widget_title, R.string.tabs_widget_description)
-        accessStatus = TextView(this).apply {
-            textSize = 14f
-            setTextColor(0xFFB6C2CF.toInt())
-            setPadding(0, dp(14), 0, dp(10))
-        }
-        root.addView(accessStatus)
-        root.addView(android.widget.Button(this).apply {
-            text = getString(R.string.overlay_permission_button)
-            setOnClickListener {
-                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-            }
-        })
-        root.addView(android.widget.Button(this).apply {
-            text = getString(R.string.rotation_permission_button)
-            setOnClickListener {
-                startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:$packageName")))
-            }
-        })
-        root.addView(Button(this).apply {
-            text = getString(R.string.media_access_button)
-            setOnClickListener {
-                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-            }
-        })
         root.addView(Button(this).apply {
             text = getString(R.string.add_home_widget)
             setOnClickListener {
@@ -93,15 +61,32 @@ class MainActivity : Activity() {
                 } else Toast.makeText(this@MainActivity, R.string.add_widget_manually, Toast.LENGTH_LONG).show()
             }
         })
-        setContentView(ScrollView(this).apply {
-            clipToPadding = false
+        val screen = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(0xFF10151C.toInt())
             setOnApplyWindowInsetsListener { view, insets ->
                 val bars = insets.getInsets(android.view.WindowInsets.Type.systemBars())
                 view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
                 insets
             }
-            addView(root)
+        }
+        val header = LinearLayout(this).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(24), dp(12), dp(24), dp(12))
+        }
+        header.addView(TextView(this).apply {
+            text = getString(R.string.app_name)
+            textSize = 24f
+            setTextColor(0xFFF2F5FA.toInt())
+        }, LinearLayout.LayoutParams(0, -2, 1f))
+        header.addView(Button(this).apply {
+            text = getString(R.string.permissions_title)
+            textSize = 14f
+            setOnClickListener { startActivity(Intent(this@MainActivity, PermissionsActivity::class.java)) }
         })
+        screen.addView(header)
+        screen.addView(ScrollView(this).apply { addView(root) }, LinearLayout.LayoutParams(-1, 0, 1f))
+        setContentView(screen)
         refreshControls()
         playSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_PLAY, enabled) }
         rotateSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_ROTATE, enabled) }
@@ -179,12 +164,6 @@ class MainActivity : Activity() {
                     direction.text = getString(if (reversed) R.string.tab_direction_reversed else R.string.tab_direction_default)
                 }
             })
-            label(getString(R.string.tab_service_description))
-            card.addView(Button(this).apply {
-                text = getString(R.string.tab_accessibility_button)
-                setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
-            })
-            return
         }
         val minimumSize = ToolSettings.minSize(tool)
         val maximumSize = ToolSettings.maxSize(tool)
@@ -232,12 +211,6 @@ class MainActivity : Activity() {
         brightnessSwitch.isEnabled = overlayReady && rotateReady
         tabsSwitch.isChecked = prefs.getBoolean(OverlayService.KEY_TABS_ENABLED, false)
         tabsSwitch.isEnabled = overlayReady && TabControls.accessibilityEnabled(this)
-        accessStatus.text = when {
-            !overlayReady -> getString(R.string.overlay_permission_needed)
-            !rotateReady -> getString(R.string.rotation_permission_needed)
-            !listenerEnabled() -> getString(R.string.media_access_needed)
-            else -> getString(R.string.all_permissions_ready)
-        }
         playSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_PLAY, enabled) }
         rotateSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_ROTATE, enabled) }
         brightnessSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_BRIGHTNESS, enabled) }

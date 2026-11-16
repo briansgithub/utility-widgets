@@ -14,4 +14,8 @@ class BrowserTabControlsTest {
     @Test fun existingFourTapAssignmentIsPreserved() = assertEquals(5, ToolSettings.defaultTabsTapCount(setOf(1, 2, 4)))
     @Test fun gestureSafetyRegression() = BubbleGesturesCheck.main(emptyArray())
     @Test fun nativeBrowserMatchingRegression() = BrowserRulesCheck.main(emptyArray())
+    @Test fun tabToolUsesSameSizeRangeAsMedia() {
+        assertEquals(ToolSettings.minSize(OverlayService.WIDGET_PLAY), ToolSettings.minSize(OverlayService.WIDGET_TABS))
+        assertEquals(ToolSettings.maxSize(OverlayService.WIDGET_PLAY), ToolSettings.maxSize(OverlayService.WIDGET_TABS))
+    }
 }

@@ -191,7 +191,11 @@ class FloatingColorPicker(
     }
 
     private fun paintIcon(view: ImageView, color: Int) {
-        view.setImageResource(if (tool == OverlayService.WIDGET_PLAY) R.drawable.ic_play else R.drawable.ic_rotate)
+        view.setImageResource(when (tool) {
+            OverlayService.WIDGET_PLAY -> R.drawable.ic_play
+            OverlayService.WIDGET_TABS -> R.drawable.ic_close_tab
+            else -> R.drawable.ic_rotate
+        })
         view.setPadding(dp(14), dp(14), dp(14), dp(14))
         view.setColorFilter(contrast(color))
         view.background = GradientDrawable().apply {
