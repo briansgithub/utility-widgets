@@ -1,20 +1,36 @@
 # Float Tools
 
-Android app with independently configurable floating play/pause and auto-rotate buttons, plus a brightness dial.
+Android app with independently configurable floating play/pause and auto-rotate buttons, a brightness dial, and Chrome/Firefox tab controls.
 
-Enable Brightness in the app to turn the dial for 0�100% manual brightness, tap for automatic brightness, or double-tap and hold then drag to move. Brightness requires change-system-settings access.
+The integrated Float Tools app is at the repository root. The earlier [standalone Tab Bubble app](standalone-tab-bubble/README.md) is retained in `standalone-tab-bubble/` with its own build and validation instructions.
+
+Enable Brightness in the app to drag to move, double-tap and drag around the dial for 0–100% manual brightness, or tap for automatic brightness. The app provides a 64–160 dp dial size slider. A sun icon indicates manual mode; a sun surrounded by an arrow indicates automatic mode. Brightness requires change-system-settings access.
 
 Add **Float Tools** from your launcher's Widgets menu, or use **Add home-screen widget** in the app. By default:
 
 - One tap toggles the floating play/pause button.
 - Two taps toggle the floating auto-rotate button.
 
-Repeat the same gesture to hide that tool. Keep consecutive taps less than 450 ms apart; the action runs 450 ms after the last tap so a double tap does not also toggle play/pause. All instances of the home-screen widget control the same tools. Unassigned tap counts do nothing except show a message.
+Repeat the same gesture to hide that tool. Keep consecutive taps less than 450 ms apart; the action runs 450 ms after the last tap so a double tap does not also toggle play/pause. Three taps toggle the brightness dial. The compact circular home-screen widget fits one launcher cell. All instances control the same tools. Unassigned tap counts do nothing except show a message.
 
-The dark app screen provides independent tap counts (1�5, unique per tool), button sizes (40�96 dp), and RGB colors for both tools. Appearance changes apply immediately to visible buttons and are saved across app restarts. To swap tap counts, temporarily assign one tool an unused count.
+**Four taps toggle Browser tabs** by default. In Float Tools, use the top-right **Permissions** button, then **Open tab-accessibility settings** to enable **Float Tools — browser tabs** once. This Android approval is separate from the old Tab Bubble app; disable that separate service when using the integrated tool to avoid duplicate widgets. The existing Float Tools home-screen widget does not need to be replaced. Existing custom tap assignments are preserved; if another tool already uses four taps, Browser tabs chooses an unused count, which can be changed in its card.
+
+Browser-tab controls appear only over regular Chrome or Firefox. Tap the circle to close the active tab; drag the circle to move the whole widget. Start a rectangle drag vertically or diagonally to reposition it. A mostly horizontal rectangle swipe selects **next on left, previous on right** by default. Turn on **Reverse left/right tab swipes** in the Browser tabs card for the opposite mapping. This preference persists and applies to both browsers. Direction locking, immediate circle taps, and the 1 ms injected toolbar gesture are retained. Keep the browser address bar visible. The 1 ms value is the injected stroke duration, not a guarantee about browser animation or reliable recognition in every browser version.
+
+The notification's hide-all action and long-press hide-all gesture also disable Browser tabs. Accessibility permission can expose screen content; the service reads native browser controls on demand and does not save or transmit page content. The app has no internet permission. See [browser-tab validation](BROWSER_TABS.md) for exact checks and remaining device validation.
+
+The dark app screen provides independent tap counts (1–5, unique per tool), 40–96 dp size sliders and color pickers for Media, Rotate, and Browser tabs. Brightness retains its 64–160 dp dial slider. Browser-tab size scales the circle and rectangle together; its selected color applies to both, with contrasting text on light colors. Appearance changes apply to visible controls and persist across app restarts. To swap tap counts, temporarily assign one tool an unused count.
+
+Default colors match the selections captured from the Pixel 9 Pro: Media `#16168D`, Rotate `#FFC926`, and Browser tabs `#919191`. These defaults apply when a tool has no saved color; custom saved colors continue to take precedence.
+
+All access controls are under the **Permissions** button in the fixed top-right header. The page includes overlay access, change-system-settings access, playback-state access, browser-tab accessibility, notifications, and optional Extra Dim status/help. Status refreshes when returning from Android settings. Permission controls are no longer placed after the tool cards or inside Browser tabs.
 
 Grant display-over-other-apps permission before using the widget. Auto-rotate also needs change-system-settings access. Drag floating buttons to move them; long-press a floating button or tap the ongoing notification to hide all tools. You can also toggle each tool directly in the app.
 
 Package/application ID remains `com.floatplay.overlay` so existing installations and preferences are preserved. Min SDK: 30.
 
 Build: `./gradlew.bat :app:assembleDebug :app:lintDebug`
+
+The brightness dial reserves its bottom 20% for progressively stronger Android Extra Dim. Above that range, Extra Dim turns off and the dial controls normal brightness. The center auto-mode icon is compact. Extra Dim needs Android 12+ and a one-time connected-computer grant: `adb shell pm grant com.floatplay.overlay android.permission.WRITE_SECURE_SETTINGS`. Without this optional grant, the dial retains its normal brightness range. Enabling automatic brightness clears Extra Dim.
+
+The normal-brightness section uses Android’s perceptual brightness curve and the built-in display configuration’s high-brightness transition as its manual maximum. This keeps maximum manual brightness at the end of the dial, rather than saturating midway. If a device does not expose a readable built-in display configuration, the app falls back to the full standard brightness range.
