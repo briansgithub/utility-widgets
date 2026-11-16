@@ -35,6 +35,7 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
     private var position: WindowManager.LayoutParams? = null
     private var lastWalk = 0L
     private var openingStraighten = false
+    private var zoomed = false
 
     private val refresh = Runnable { updateVisibility(force = true) }
 
@@ -241,31 +242,38 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
             message(getString(R.string.photos_slider_missing))
             return
         }
-        val sign = PhotosCrop.rotationCreepX(clockwise).toFloat()
-        val x = bounds.exactCenterX()
+        val slop = ViewConfiguration.get(this).scaledTouchSlop
+        val distance = PhotosCrop.rotationDragPx(slop).toFloat()
+        val sign = if (clockwise) -1f else 1f
         val y = bounds.exactCenterY()
-        val engage = (ViewConfiguration.get(this).scaledTouchSlop + 1).toFloat()
+        val inset = 8f
+        val travel = sign * distance
+        var startX = bounds.exactCenterX()
+        val endX = (startX + travel).coerceIn(bounds.left + inset, bounds.right - inset)
+        startX = endX - travel
         val path = Path().apply {
-            moveTo(x, y)
-            val above = y - bounds.top
-            val below = bounds.bottom - y
-            when {
-                above >= engage + 2f -> {
-                    lineTo(x, y - engage)
-                    lineTo(x + sign, y - engage)
-                }
-                below >= engage + 2f -> {
-                    lineTo(x, y + engage)
-                    lineTo(x + sign, y + engage)
-                }
-                else -> lineTo(x + sign, y)
-            }
+            moveTo(startX, y)
+            lineTo(endX, y)
         }
-        dispatch(path, 220L)
+        dispatch(listOf(path), 220L)
     }
 
     private fun nudge(xSign: Int, ySign: Int) {
         val root = activeApp() ?: return
+        if (findSlider(root) == null) {
+            zoomed = false
+            val opener = findStraightenOpener(root)
+            if (!openingStraighten && opener?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true) {
+                openingStraighten = true
+                handler.postDelayed({
+                    openingStraighten = false
+                    nudge(xSign, ySign)
+                }, 500)
+            } else if (!openingStraighten) {
+                message(getString(R.string.photos_pan_missing))
+            }
+            return
+        }
         val target = findPanTarget(root)
         if (target == null) {
             message(getString(R.string.photos_pan_missing))
@@ -277,26 +285,55 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
             message(getString(R.string.photos_pan_missing))
             return
         }
-        val distance = PhotosCrop.STEP_PX.toFloat()
         var startX = bounds.exactCenterX()
         var startY = bounds.exactCenterY()
         panelScreenRect()?.let { panelBounds ->
             if (panelBounds.contains(startX.toInt(), startY.toInt())) {
-                startX = (panelBounds.left - dp(24)).toFloat().coerceAtLeast(bounds.left + distance)
+                startX = (panelBounds.left - dp(80)).toFloat().coerceAtLeast((bounds.left + dp(48)).toFloat())
             }
         }
-        val path = Path().apply {
-            moveTo(startX, startY)
-            lineTo(startX + xSign * distance, startY + ySign * distance)
+        val slop = ViewConfiguration.get(this).scaledTouchSlop
+        val distance = PhotosCrop.rotationDragPx(slop).toFloat()
+        val pan = {
+            val path = Path().apply {
+                moveTo(startX, startY)
+                lineTo(startX + xSign * distance, startY + ySign * distance)
+            }
+            dispatch(listOf(path), 220L)
+            Unit
         }
-        dispatch(path, 160L)
+        if (zoomed) {
+            pan()
+            return
+        }
+        val half = PhotosCrop.minimumPinchPx(slop).toFloat()
+        val left = Path().apply {
+            moveTo(startX - dp(24), startY)
+            lineTo(startX - dp(24) - half, startY)
+        }
+        val right = Path().apply {
+            moveTo(startX + dp(24), startY)
+            lineTo(startX + dp(24) + half, startY)
+        }
+        zoomed = dispatch(listOf(left, right), 280L, pan)
     }
 
-    private fun dispatch(path: Path, durationMs: Long) {
-        val stroke = GestureDescription.StrokeDescription(path, 0, durationMs)
-        val gesture = GestureDescription.Builder().addStroke(stroke).build()
-        val accepted = dispatchGesture(gesture, null, handler)
+    private fun dispatch(paths: List<Path>, durationMs: Long, then: (() -> Unit)? = null): Boolean {
+        val builder = GestureDescription.Builder()
+        for (path in paths) {
+            builder.addStroke(GestureDescription.StrokeDescription(path, 0, durationMs))
+        }
+        val accepted = dispatchGesture(
+            builder.build(),
+            object : GestureResultCallback() {
+                override fun onCompleted(gestureDescription: GestureDescription?) {
+                    then?.let { handler.post(it) }
+                }
+            },
+            handler,
+        )
         if (!accepted) message(getString(R.string.photos_gesture_rejected))
+        return accepted
     }
 
     private fun findSlider(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
@@ -400,6 +437,7 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
     }
 
     private fun hidePanel() {
+        zoomed = false
         val host = panel ?: return
         try {
             manager?.removeView(host)

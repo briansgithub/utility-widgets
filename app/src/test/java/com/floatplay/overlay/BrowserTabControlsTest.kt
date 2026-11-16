@@ -20,10 +20,11 @@ class BrowserTabControlsTest {
     @Test fun photoLibraryDoesNotShowThePad() = assertFalse(PhotosCrop.cropSession(emptyList(), listOf("Crop"), false))
     @Test fun defaultPhotoToolUsesFiveTaps() = assertEquals(5, ToolSettings.defaultPhotosTapCount(setOf(1, 2, 3, 4)))
     @Test fun photoToolAvoidsAssignedFiveTaps() = assertEquals(4, ToolSettings.defaultPhotosTapCount(setOf(1, 2, 3, 5)))
-    @Test fun rotationAndTranslateUseOnePixel() {
-        assertEquals(1, PhotosCrop.STEP_PX)
-        assertEquals(-1, PhotosCrop.rotationCreepX(clockwise = true))
-        assertEquals(1, PhotosCrop.rotationCreepX(clockwise = false))
+    @Test fun rotationDragClearsTouchSlop() {
+        assertEquals(25, PhotosCrop.rotationDragPx(21))
+        assertEquals(-25, PhotosCrop.rotationDragX(clockwise = true, touchSlopPx = 21))
+        assertEquals(28, PhotosCrop.rotationDragX(clockwise = false, touchSlopPx = 24))
+        assertEquals(22, PhotosCrop.minimumPinchPx(21))
     }
     @Test fun gestureSafetyRegression() = BubbleGesturesCheck.main(emptyArray())
     @Test fun nativeBrowserMatchingRegression() = BrowserRulesCheck.main(emptyArray())

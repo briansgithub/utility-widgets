@@ -21,11 +21,21 @@ internal object PhotosCrop {
 
     fun isPanTarget(id: String?): Boolean = leaf(id) in panTargets
 
-    /** One pixel of movement for a rotate creep or a photo drag. */
-    const val STEP_PX = 1
+    /**
+     * Shortest slider drag that stays a drag.
+     * Anything at or below the touch slop is delivered as a tap and jumps the angle.
+     * Four pixels past the slop is the first drag, and on the crop bar that drag is one visible step.
+     */
+    fun rotationDragPx(touchSlopPx: Int): Int = touchSlopPx + 4
 
-    /** Clockwise creeps left along the straighten bar; counterclockwise creeps right. */
-    fun rotationCreepX(clockwise: Boolean): Int = if (clockwise) -STEP_PX else STEP_PX
+    /** Smallest pinch that still changes a fitted crop. A shorter one is delivered as two taps. */
+    fun minimumPinchPx(touchSlopPx: Int): Int = touchSlopPx + 1
+
+    /** Clockwise drags left along the straighten bar; counterclockwise drags right. */
+    fun rotationDragX(clockwise: Boolean, touchSlopPx: Int): Int {
+        val distance = rotationDragPx(touchSlopPx)
+        return if (clockwise) -distance else distance
+    }
 
     fun isCropChrome(label: String): Boolean {
         val text = label.trim().lowercase()
