@@ -21,6 +21,7 @@ class MainActivity : Activity() {
     private lateinit var rotateSwitch: Switch
     private lateinit var brightnessSwitch: Switch
     private lateinit var tabsSwitch: Switch
+    private lateinit var photosSwitch: Switch
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +53,7 @@ class MainActivity : Activity() {
         rotateSwitch = addWidgetRow(root, R.string.rotate_widget_title, R.string.rotate_widget_description)
         brightnessSwitch = addWidgetRow(root, R.string.brightness_widget_title, R.string.brightness_widget_description)
         tabsSwitch = addWidgetRow(root, R.string.tabs_widget_title, R.string.tabs_widget_description)
+        photosSwitch = addWidgetRow(root, R.string.photos_widget_title, R.string.photos_widget_description)
         root.addView(Button(this).apply {
             text = getString(R.string.add_home_widget)
             setOnClickListener {
@@ -92,6 +94,7 @@ class MainActivity : Activity() {
         rotateSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_ROTATE, enabled) }
         brightnessSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_BRIGHTNESS, enabled) }
         tabsSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_TABS, enabled) }
+        photosSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_PHOTOS, enabled) }
     }
 
     private fun addWidgetRow(root: LinearLayout, title: Int, description: Int): Switch {
@@ -119,6 +122,7 @@ class MainActivity : Activity() {
             R.string.play_widget_title -> OverlayService.WIDGET_PLAY
             R.string.rotate_widget_title -> OverlayService.WIDGET_ROTATE
             R.string.brightness_widget_title -> OverlayService.WIDGET_BRIGHTNESS
+            R.string.photos_widget_title -> OverlayService.WIDGET_PHOTOS
             else -> OverlayService.WIDGET_TABS
         }
         addSettings(card, tool)
@@ -203,6 +207,7 @@ class MainActivity : Activity() {
         rotateSwitch.setOnCheckedChangeListener(null)
         brightnessSwitch.setOnCheckedChangeListener(null)
         tabsSwitch.setOnCheckedChangeListener(null)
+        photosSwitch.setOnCheckedChangeListener(null)
         playSwitch.isChecked = overlayReady && prefs.getBoolean(OverlayService.KEY_PLAY_ENABLED, false)
         rotateSwitch.isChecked = overlayReady && rotateReady && prefs.getBoolean(OverlayService.KEY_ROTATE_ENABLED, false)
         playSwitch.isEnabled = overlayReady
@@ -211,10 +216,13 @@ class MainActivity : Activity() {
         brightnessSwitch.isEnabled = overlayReady && rotateReady
         tabsSwitch.isChecked = prefs.getBoolean(OverlayService.KEY_TABS_ENABLED, false)
         tabsSwitch.isEnabled = overlayReady && TabControls.accessibilityEnabled(this)
+        photosSwitch.isChecked = prefs.getBoolean(OverlayService.KEY_PHOTOS_ENABLED, false)
+        photosSwitch.isEnabled = overlayReady && PhotosCropService.accessibilityEnabled(this)
         playSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_PLAY, enabled) }
         rotateSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_ROTATE, enabled) }
         brightnessSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_BRIGHTNESS, enabled) }
         tabsSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_TABS, enabled) }
+        photosSwitch.setOnCheckedChangeListener { _, enabled -> toggleWidget(OverlayService.WIDGET_PHOTOS, enabled) }
     }
 
     private fun toggleWidget(widget: String, enabled: Boolean) {
@@ -231,6 +239,11 @@ class MainActivity : Activity() {
         }
         if (enabled && widget == OverlayService.WIDGET_TABS && !TabControls.accessibilityEnabled(this)) {
             Toast.makeText(this, R.string.tab_accessibility_needed, Toast.LENGTH_LONG).show()
+            refreshControls()
+            return
+        }
+        if (enabled && widget == OverlayService.WIDGET_PHOTOS && !PhotosCropService.accessibilityEnabled(this)) {
+            Toast.makeText(this, R.string.photos_accessibility_needed, Toast.LENGTH_LONG).show()
             refreshControls()
             return
         }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Float Tools</string>
-    <string name="widget_screen_description">Add the Float Tools home-screen widget. Defaults: tap once for play/pause, twice for rotate, three times for brightness, or four times for browser tabs; repeat the same taps to hide. Customize each tool below. Leave less than 450 ms between taps.</string>
+    <string name="widget_screen_description">Add the Float Tools home-screen widget. Defaults: tap once for play/pause, twice for rotate, three times for brightness, four times for browser tabs, or five times for Photos crop; repeat the same taps to hide. Customize each tool below. Leave less than 450 ms between taps.</string>
     <string name="tabs_widget_title">Browser tabs</string>
     <string name="tabs_widget_description">Chrome and Firefox controls. Tap the circle to close a tab; drag it to move. Swipe the rectangle left/right to change tabs; drag vertically or diagonally to move. Enable tab accessibility from Permissions. Disable the separate Tab Bubble service when using this tool to avoid duplicate controls.</string>
     <string name="permissions_title">Permissions</string>
@@ -14,6 +14,23 @@
     <string name="permission_system_settings">Change system settings</string>
     <string name="permission_playback">Playback-state access</string>
     <string name="permission_browser_tabs">Browser-tab accessibility</string>
+    <string name="permission_photo_crop">Photo-crop accessibility</string>
+    <string name="photos_widget_title">Photos crop</string>
+    <string name="photos_widget_description">Shows only while Google Photos is cropping and rotating a photo. Each button moves by the smallest step the editor accepts. Enable photo-crop accessibility from Permissions.</string>
+    <string name="photos_accessibility_title">Float Tools — photo crop</string>
+    <string name="photos_accessibility_button">Open photo-crop accessibility settings</string>
+    <string name="photos_accessibility_needed">Enable Float Tools — photo crop in Android Accessibility settings first.</string>
+    <string name="photos_service_description">When this tool is enabled, Float Tools reads the Google Photos crop screen and performs one slider step or a one-pixel-past-touch-slop drag on your behalf. It appears only while Crop and rotate is open. Float Tools does not save or send screen contents and has no internet permission. You can disable this service in Android Accessibility settings at any time.</string>
+    <string name="photos_rotate_clockwise">Rotate clockwise by the smallest step</string>
+    <string name="photos_rotate_counterclockwise">Rotate counterclockwise by the smallest step</string>
+    <string name="photos_translate_up">Move the photo up by the smallest drag</string>
+    <string name="photos_translate_down">Move the photo down by the smallest drag</string>
+    <string name="photos_translate_left">Move the photo left by the smallest drag</string>
+    <string name="photos_translate_right">Move the photo right by the smallest drag</string>
+    <string name="photos_slider_missing">Photos is not showing the crop rotation slider.</string>
+    <string name="photos_pan_missing">Photos is not showing the crop area to drag.</string>
+    <string name="photos_at_limit">The crop rotation slider is already at its limit.</string>
+    <string name="photos_gesture_rejected">Android did not accept the crop drag. Re-enable photo-crop accessibility.</string>
     <string name="permission_notifications">Notifications</string>
     <string name="permission_extra_dim">Extra Dim (optional)</string>
     <string name="tab_accessibility_title">Float Tools — browser tabs</string>

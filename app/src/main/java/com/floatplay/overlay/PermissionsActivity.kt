@@ -57,6 +57,8 @@ class PermissionsActivity : Activity() {
         button(content, R.string.media_access_button) { Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS) }
         text(content, getString(R.string.tab_service_description))
         button(content, R.string.tab_accessibility_button) { Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS) }
+        text(content, getString(R.string.photos_service_description))
+        button(content, R.string.photos_accessibility_button) { Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS) }
         button(content, R.string.notifications_permission_button) {
             Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
         }
@@ -74,6 +76,7 @@ class PermissionsActivity : Activity() {
             line(R.string.permission_system_settings, Settings.System.canWrite(this)),
             line(R.string.permission_playback, listenerEnabled()),
             line(R.string.permission_browser_tabs, TabControls.accessibilityEnabled(this)),
+            line(R.string.permission_photo_crop, PhotosCropService.accessibilityEnabled(this)),
             line(R.string.permission_notifications, getSystemService(NotificationManager::class.java).areNotificationsEnabled()),
         )
         if (Build.VERSION.SDK_INT >= 31) lines.add(line(R.string.permission_extra_dim, ExtraDim.available(this)))
