@@ -4,7 +4,8 @@ b=$1
 case $b in Up|Down) axis=y;; *) axis=x;; esac
 export AXIS=$axis DECODER=$(dirname "$0")/decq.py EXPORT=ftq$axis
 . "${FT_OUT:-/tmp/photos-crop}/ids.env"; [ $axis = x ] && export MEDIA=$FTQX || export MEDIA=$FTQY
-$(dirname "$0")/editor.sh >/dev/null; sleep 0.5
+$(dirname "$0")/editor.sh >/dev/null
+sleep 2  # each uiautomator dump makes Android 17 reconnect accessibility services, which cancels a running drag
 xy=$($(dirname "$0")/pad.sh $b) || exit 1
 $(dirname "$0")/adb.sh logcat -c
 $(dirname "$0")/adb.sh shell input tap $xy
@@ -13,5 +14,6 @@ for i in $(seq 1 30); do
   [ "$n" -ge 2 ] && break; sleep 0.3
 done
 r=$($(dirname "$0")/adb.sh logcat -d -s FTProbe:I | grep -oE "pad (press|gesture) [A-Za-z]+( interrupted=[a-z]+)?" | sed 's/pad //' | tr '\n' ',')
+r="$r reconnects=$($(dirname "$0")/adb.sh logcat -d -s FTProbe:I | grep -c " ready ")"
 sleep 0.6
 $(dirname "$0")/apply_save.sh "$b [$r]" 2>&1 | grep -v pulled
