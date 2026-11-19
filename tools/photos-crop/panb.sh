@@ -2,10 +2,10 @@
 # panb.sh <Up|Down|Left|Right> : fresh editor, tap the real pad button once, export, decode along that axis
 b=$1
 case $b in Up|Down) axis=y;; *) axis=x;; esac
-xy=$($(dirname "$0")/pad.sh $b) || exit 1
 export AXIS=$axis DECODER=$(dirname "$0")/decq.py EXPORT=ftq$axis
 . "${FT_OUT:-/tmp/photos-crop}/ids.env"; [ $axis = x ] && export MEDIA=$FTQX || export MEDIA=$FTQY
 $(dirname "$0")/editor.sh >/dev/null; sleep 0.5
+xy=$($(dirname "$0")/pad.sh $b) || exit 1
 $(dirname "$0")/adb.sh logcat -c
 $(dirname "$0")/adb.sh shell input tap $xy
 for i in $(seq 1 30); do
