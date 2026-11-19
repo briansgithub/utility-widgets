@@ -7,6 +7,7 @@ for i in $(seq 1 12); do
   [ -n "$b" ] && break; sleep 0.4
 done
 [ -z "$b" ] && { echo "pad not showing" >&2; exit 1; }
-cw=$(( (r - l) * 52 / 110 ))   # 52 dp buttons, 6 dp gap, 2 columns x 3 rows
-c0=$(( l + cw / 2 )); c1=$(( r - cw / 2 )); r0=$(( t + cw / 2 )); r1=$(( (t + b) / 2 )); r2=$(( b - cw / 2 ))
-case $1 in CW) echo $c0 $r0;; CCW) echo $c1 $r0;; Up) echo $c0 $r1;; Down) echo $c1 $r1;; Left) echo $c0 $r2;; Right) echo $c1 $r2;; *) exit 2;; esac
+k=$(( (r - l) * 52 / 164 ))   # grip bar 28 dp, then 2 rows x 3 columns of 52 dp keys, 4 dp gaps (164 x 140 dp)
+c0=$(( l + k / 2 )); c1=$(( (l + r) / 2 )); c2=$(( r - k / 2 )); r0=$(( b - k - (r - l) * 4 / 164 - k / 2 )); r1=$(( b - k / 2 ))
+[ $(( r - l )) -lt $(( k * 2 )) ] && { echo "pad is folded; tap it to unfold" >&2; exit 1; }
+case $1 in CCW) echo $c0 $r0;; Up) echo $c1 $r0;; CW) echo $c2 $r0;; Left) echo $c0 $r1;; Down) echo $c1 $r1;; Right) echo $c2 $r1;; *) exit 2;; esac

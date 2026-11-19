@@ -4,13 +4,16 @@ import android.accessibilityservice.AccessibilityService
 import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -19,8 +22,10 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
-import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.GridLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.Toast
 import android.util.Log
 import kotlin.math.roundToInt
@@ -30,7 +35,10 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
     private var manager: WindowManager? = null
     private var prefs: SharedPreferences? = null
     private var toolPrefs: SharedPreferences? = null
-    private var panel: GridLayout? = null
+    private var panel: FrameLayout? = null
+    private var openView: View? = null
+    private var chipView: View? = null
+    private var windowTop = 0
     private var position: WindowManager.LayoutParams? = null
     private var lastWalk = 0L
     private var zoomed = false
@@ -111,69 +119,169 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
         return PhotosCrop.cropSession(sliderIds, labels, hasRange)
     }
 
+    /**
+     * The pad: a grip bar over an arrow-key block. Rotate keys flank Up; Left, Down and Right sit under them, so each
+     * arrow points where the photo goes. Drag any part to move it; tap the grip to fold the pad to one round key.
+     */
     private fun showPanel() {
         if (panel != null) return
         val windowManager = manager ?: return
         val stored = prefs ?: return
         val color = ToolSettings.color(this, OverlayService.WIDGET_PHOTOS)
-        val textColor = if (Color.luminance(color) > 0.55f) 0xFF102018.toInt() else Color.WHITE
-        val size = dp(52)
-        val gap = dp(6)
-        val width = size * 2 + gap
-        val height = size * 3 + gap * 2
+        val iconColor = if (Color.luminance(color) > 0.55f) 0xFF102018.toInt() else Color.WHITE
         val params = WindowManager.LayoutParams(
-            width,
-            height,
+            padWidth(),
+            padHeight(),
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT,
         )
         params.gravity = Gravity.TOP or Gravity.START
         val screen = windowManager.currentWindowMetrics.bounds
-        params.x = stored.getInt("x", screen.width() - width - dp(12))
+        params.x = stored.getInt("x", screen.width() - padWidth() - dp(12))
         params.y = stored.getInt("y", screen.height() / 3)
         position = params
-        clamp()
-        val grid = GridLayout(this).apply {
-            columnCount = 2
-            rowCount = 3
-        }
         val actions = listOf(
-            Action("CW", getString(R.string.photos_rotate_clockwise)) { press(Step.Rotate(clockwise = true)) },
-            Action("CCW", getString(R.string.photos_rotate_counterclockwise)) { press(Step.Rotate(clockwise = false)) },
-            Action("Up", getString(R.string.photos_translate_up)) { press(Step.Pan(0, -1)) },
-            Action("Down", getString(R.string.photos_translate_down)) { press(Step.Pan(0, 1)) },
-            Action("Left", getString(R.string.photos_translate_left)) { press(Step.Pan(-1, 0)) },
-            Action("Right", getString(R.string.photos_translate_right)) { press(Step.Pan(1, 0)) },
+            Action("CCW", R.drawable.ic_pad_rotate_ccw, getString(R.string.photos_rotate_counterclockwise)) { press(Step.Rotate(clockwise = false)) },
+            Action("Up", R.drawable.ic_pad_up, getString(R.string.photos_translate_up)) { press(Step.Pan(0, -1)) },
+            Action("CW", R.drawable.ic_pad_rotate_cw, getString(R.string.photos_rotate_clockwise)) { press(Step.Rotate(clockwise = true)) },
+            Action("Left", R.drawable.ic_pad_left, getString(R.string.photos_translate_left)) { press(Step.Pan(-1, 0)) },
+            Action("Down", R.drawable.ic_pad_down, getString(R.string.photos_translate_down)) { press(Step.Pan(0, 1)) },
+            Action("Right", R.drawable.ic_pad_right, getString(R.string.photos_translate_right)) { press(Step.Pan(1, 0)) },
         )
-        actions.forEachIndexed { index, action ->
-            val button = Button(this).apply {
-                text = action.label
-                contentDescription = action.description
-                setTextColor(textColor)
-                textSize = 13f
-                setPadding(0, 0, 0, 0)
-                minWidth = 0
-                minHeight = 0
-                background = GradientDrawable().apply {
-                    setColor(color)
-                    cornerRadius = dp(10).toFloat()
-                }
-                setOnClickListener {
-                    Log.i(PhotosProbe.TAG, "pad press ${action.label}")
-                    action.run()
-                }
-            }
-            attachDrag(button)
-            val cell = GridLayout.LayoutParams(GridLayout.spec(index / 2), GridLayout.spec(index % 2))
-            cell.width = size
-            cell.height = size
-            if (index % 2 == 1) cell.leftMargin = gap
-            if (index >= 2) cell.topMargin = gap
-            grid.addView(button, cell)
+        val keys = GridLayout(this).apply {
+            columnCount = 3
+            rowCount = 2
         }
-        panel = grid
-        windowManager.addView(grid, params)
+        actions.forEachIndexed { index, action ->
+            val key = padKey(action.icon, action.description, color, iconColor, GradientDrawable.RECTANGLE) {
+                Log.i(PhotosProbe.TAG, "pad press ${action.label}")
+                action.run()
+            }
+            val cell = GridLayout.LayoutParams(GridLayout.spec(index / 3), GridLayout.spec(index % 3))
+            cell.width = dp(KEY_DP)
+            cell.height = dp(KEY_DP)
+            if (index % 3 > 0) cell.leftMargin = dp(GAP_DP)
+            if (index >= 3) cell.topMargin = dp(GAP_DP)
+            keys.addView(key, cell)
+        }
+        val grip = ImageView(this).apply {
+            setImageResource(R.drawable.ic_pad_grip)
+            imageTintList = ColorStateList.valueOf(Color.WHITE)
+            scaleType = ImageView.ScaleType.CENTER
+            contentDescription = getString(R.string.photos_pad_fold)
+            background = RippleDrawable(
+                ColorStateList.valueOf(0x55FFFFFF),
+                GradientDrawable().apply {
+                    setColor(0xD9102018.toInt())
+                    cornerRadius = dp(GRIP_DP).toFloat() / 2
+                },
+                null,
+            )
+            setOnClickListener { setFolded(true) }
+        }
+        attachDrag(grip)
+        val open = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(grip, LinearLayout.LayoutParams(-1, dp(GRIP_DP)).apply { bottomMargin = dp(GAP_DP) })
+            addView(keys)
+        }
+        val chip = padKey(R.drawable.ic_tool_photos, getString(R.string.photos_pad_unfold), color, iconColor, GradientDrawable.OVAL) {
+            setFolded(false)
+        }
+        val host = FrameLayout(this).apply {
+            addView(open, FrameLayout.LayoutParams(-1, -1))
+            addView(chip, FrameLayout.LayoutParams(dp(KEY_DP), dp(KEY_DP), Gravity.TOP or Gravity.END))
+        }
+        openView = open
+        chipView = chip
+        panel = host
+        showFolded(stored.getBoolean(KEY_FOLDED, false))
+        windowManager.addView(host, params)
+        // The window's y counts from below the status bar; Photos' controls are in screen pixels.
+        host.post {
+            val location = IntArray(2)
+            host.getLocationOnScreen(location)
+            windowTop = location[1] - params.y
+            settle()
+        }
+    }
+
+    private fun padKey(icon: Int, description: String, color: Int, iconColor: Int, shape: Int, onTap: () -> Unit) =
+        ImageView(this).apply {
+            setImageResource(icon)
+            imageTintList = ColorStateList.valueOf(iconColor)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            val inset = dp((KEY_DP - ICON_DP) / 2)
+            setPadding(inset, inset, inset, inset)
+            contentDescription = description
+            isClickable = true
+            background = RippleDrawable(
+                ColorStateList.valueOf(if (iconColor == Color.WHITE) 0x66FFFFFF else 0x44000000),
+                GradientDrawable().apply {
+                    this.shape = shape
+                    setColor(color)
+                    if (shape == GradientDrawable.RECTANGLE) cornerRadius = dp(14).toFloat()
+                },
+                null,
+            )
+            setOnClickListener {
+                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                onTap()
+            }
+            attachDrag(this)
+        }
+
+    private fun padWidth() = dp(KEY_DP * 3 + GAP_DP * 2)
+
+    private fun padHeight() = dp(GRIP_DP + KEY_DP * 2 + GAP_DP * 2)
+
+    private fun folded() = chipView?.visibility == View.VISIBLE
+
+    private fun showFolded(fold: Boolean) {
+        openView?.visibility = if (fold) View.GONE else View.VISIBLE
+        chipView?.visibility = if (fold) View.VISIBLE else View.GONE
+        val params = position ?: return
+        params.width = if (fold) dp(KEY_DP) else padWidth()
+        params.height = if (fold) dp(KEY_DP) else padHeight()
+    }
+
+    /** Folding keeps the top-right corner still, so the round key sits where the grip bar ended. */
+    private fun setFolded(fold: Boolean) {
+        val params = position ?: return
+        if (fold == folded()) return
+        val right = params.x + params.width
+        showFolded(fold)
+        params.x = right - params.width
+        prefs?.edit()?.putBoolean(KEY_FOLDED, fold)?.apply()
+        settle()
+    }
+
+    /** Keeps the pad on screen and off Photos' top and bottom controls, then saves where it is. */
+    private fun settle() {
+        val params = position ?: return
+        val windowManager = manager ?: return
+        val host = panel ?: return
+        clamp()
+        activeApp()?.let { root ->
+            val controls = ArrayList<IntArray>()
+            val screen = Rect().also { root.getBoundsInScreen(it) }
+            walk(root) { node ->
+                if (!node.isClickable) return@walk
+                val bounds = Rect().also { node.getBoundsInScreen(it) }
+                controls.add(intArrayOf(bounds.top, bounds.bottom))
+            }
+            PhotosCrop.freeBand(screen.height(), controls)?.let { band ->
+                params.y = PhotosCrop.snapY(params.y + windowTop, params.height, band[0], band[1]) - windowTop
+            }
+        }
+        try {
+            windowManager.updateViewLayout(host, params)
+        } catch (_: RuntimeException) {
+        }
+        // Saved as the unfolded pad's corner, so unfolding puts it back where it was.
+        val savedX = if (folded()) params.x + params.width - padWidth() else params.x
+        prefs?.edit()?.putInt("x", savedX)?.putInt("y", params.y)?.apply()
     }
 
     private fun attachDrag(button: View) {
@@ -197,11 +305,16 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
                         startX = params.x
                         startY = params.y
                         dragging = false
+                        view.drawableHotspotChanged(event.x, event.y)
+                        view.isPressed = true
                     }
                     MotionEvent.ACTION_MOVE -> {
                         val dx = event.rawX - downX
                         val dy = event.rawY - downY
-                        if (!dragging && (dx * dx + dy * dy) > slop * slop) dragging = true
+                        if (!dragging && (dx * dx + dy * dy) > slop * slop) {
+                            dragging = true
+                            view.isPressed = false
+                        }
                         if (dragging) {
                             params.x = startX + dx.roundToInt()
                             params.y = startY + dy.roundToInt()
@@ -210,18 +323,17 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
                         }
                     }
                     MotionEvent.ACTION_UP -> {
-                        if (dragging) {
-                            prefs?.edit()?.putInt("x", params.x)?.putInt("y", params.y)?.apply()
-                        } else {
-                            view.performClick()
-                        }
+                        view.isPressed = false
+                        if (dragging) settle() else view.performClick()
                         dragging = false
                     }
                     MotionEvent.ACTION_CANCEL -> {
+                        view.isPressed = false
                         // A drag still running in Photos cancels this touch; the tap was real, so count it.
                         if (gestureInFlight) interrupted = true
                         val short = event.eventTime - event.downTime < ViewConfiguration.getLongPressTimeout()
                         if (!dragging && short && panel != null) view.performClick()
+                        if (dragging) settle()
                         dragging = false
                     }
                 }
@@ -631,6 +743,8 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
         } catch (_: RuntimeException) {
         }
         panel = null
+        openView = null
+        chipView = null
     }
 
     private fun message(text: String) {
@@ -639,10 +753,15 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).roundToInt()
 
-    private class Action(val label: String, val description: String, val run: () -> Unit)
+    private class Action(val label: String, val icon: Int, val description: String, val run: () -> Unit)
 
     companion object {
         private const val PREFS = "photos_crop"
+        private const val KEY_FOLDED = "pad_folded"
+        private const val KEY_DP = 52
+        private const val ICON_DP = 28
+        private const val GAP_DP = 4
+        private const val GRIP_DP = 28
         const val KEY_ROTATION_RAD = "step_rotation_rad"
         const val KEY_ROTATION_DRAG = "step_rotation_drag_px"
         const val KEY_PAN_X = "step_pan_x_px"
