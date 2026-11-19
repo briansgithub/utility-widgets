@@ -34,9 +34,11 @@ internal object PhotosCrop {
     /**
      * Steps measured on real phones (Build.DEVICE), see PHOTOS_CROP_STEPS.md.
      * lynx = Pixel 7a, 1080x2400, 420 dpi, touch slop 21 px.
+     * caiman = Pixel 9 Pro, 1280x2856, 480 dpi, touch slop 24 px.
      */
     private val measured = mapOf(
         "lynx" to CropSteps(ROTATION_STEP_RAD, rotationDragPx = 26, panXPx = 23, panYPx = 23, pinchPx = 22),
+        "caiman" to CropSteps(ROTATION_STEP_RAD, rotationDragPx = 30, panXPx = 26, panYPx = 26, pinchPx = 25),
     )
 
     /**

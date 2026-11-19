@@ -7,7 +7,7 @@ per `Build.DEVICE`; any other phone gets `PhotosCrop.defaultSteps`, worked out f
 | Phone | Build.DEVICE | Screen | Touch slop | Rotate (each press) | Up / Down / Left / Right drag | First-press pinch |
 |---|---|---|---|---|---|---|
 | Pixel 7a | `lynx` | 1080x2400, 420 dpi | 21 px | 0.01 rad (0.573°), set directly; fallback drag 26 px | 23 px, about 1 screen px of photo movement | 22 px per finger |
-| Pixel 9 Pro | to measure | | | | | |
+| Pixel 9 Pro | `caiman` | 1280x2856, 480 dpi | 24 px | 0.01 rad, set directly; fallback drag 30 px | 26 px, about 1 screen px of photo movement | 25 px per finger |
 
 ## How the buttons work
 
@@ -70,7 +70,35 @@ the photo vertically. Every Up result was above that range and every Down result
 The two axes need the same drag on the 7a: the slop is a radius, so Up/Down and Left/Right both start moving at 23 px.
 On screen, one step is about 1 px either way.
 
-## Measuring another phone (e.g. Pixel 9 Pro)
+## Pixel 9 Pro (Photos 7.99, 2026-11-19)
+
+Same method and same editor UI as the 7a. Straighten bar [204,2352][1088,2520]. The 9 Pro's numbers are the 7a's
+shifted by the larger touch slop (24 px), so they match `defaultSteps` for that slop and density.
+
+### Rotation
+
+| Input | Result |
+|---|---|
+| drag 25, 26 or 27 px | no change (3/3 each) |
+| drag 28 to 33 px | exactly 0.01 rad (3/3 each) |
+| drag 34 / 36 px | 0.02 rad |
+| drag 30 px (the fallback) | +0.01 rad 10/10, −0.01 rad 10/10 |
+| button, slow taps | +0.01 rad 10/10 CW, −0.01 rad 10/10 CCW |
+| button, 10 quick taps (0.1 s apart, and back to back) | exactly ±10 steps, both directions |
+
+### Photo drags (after the 25 px pinch; decoded source px, one screen px ≈ 3.5 source px here)
+
+| Drag | Result |
+|---|---|
+| baselines (pinch only) | x 1798.8–1799.9; y 2403.9–2405.1 |
+| 25 px | Right 3/3 no move; Up 2 of 3 no move, one jumped about 3 screen px |
+| **26 px button** | Right 10/10 (1795.8–1797.0), Left 10/10 (1801.9–1803.0), Down 10/10 (2401.4–2402.3), Up 9/10 (2407.9–2409.1; one at 2404.1, inside the baseline) |
+| 5 quick taps, Right and Left | moved about 4–5 steps (Right 1783.9 / 1782.9, Left 1815.2) |
+
+Test-rig note: on Android 17 each `uiautomator dump` makes Android reconnect accessibility services, and a reconnect
+cancels a drag that is running. The scripts now wait 2 s after the last dump before tapping and log the reconnects.
+
+## Measuring another phone
 
 Needs: the phone on adb, this branch's debug build installed (`adb install -r`), Float Tools' photo-crop accessibility
 enabled, the Photos crop tool enabled in Float Tools, `uv` (for Pillow). From WSL with the Windows adb:

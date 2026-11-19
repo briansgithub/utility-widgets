@@ -28,6 +28,14 @@ class PhotosCropStepsTest {
         assertEquals(PhotosCrop.ROTATION_STEP_RAD, steps.rotationRad, 0f)
     }
 
+    @Test fun pixel9ProUsesItsMeasuredSteps() {
+        val steps = PhotosCrop.steps("caiman", touchSlopPx = 24, density = 3f)
+        assertEquals(30, steps.rotationDragPx)
+        assertEquals(26, steps.panXPx)
+        assertEquals(26, steps.panYPx)
+        assertEquals(25, steps.pinchPx)
+    }
+
     @Test fun photoDragsRunFastOnlyUpToJustShortOfTheSlop() {
         assertEquals(18, PhotosCrop.panApproachPx(21, 23))
         assertEquals(5, PhotosCrop.panApproachPx(8, 5))
