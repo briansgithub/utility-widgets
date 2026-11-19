@@ -27,6 +27,8 @@
     <string name="photos_translate_down">Move the photo down one step</string>
     <string name="photos_translate_left">Move the photo left one step</string>
     <string name="photos_translate_right">Move the photo right one step</string>
+    <string name="photos_pad_fold">Crop pad handle. Drag to move; tap to fold the pad</string>
+    <string name="photos_pad_unfold">Unfold the crop pad. Drag to move</string>
     <string name="photos_slider_missing">Photos is not showing the crop rotation slider.</string>
     <string name="photos_pan_missing">Photos is not showing the crop area to drag.</string>
     <string name="photos_at_limit">The crop rotation slider is already at its limit.</string>

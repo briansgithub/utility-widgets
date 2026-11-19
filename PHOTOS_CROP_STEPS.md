@@ -11,6 +11,11 @@ per `Build.DEVICE`; any other phone gets `PhotosCrop.defaultSteps`, worked out f
 
 ## How the buttons work
 
+The pad is a grip bar over an arrow-key block: CCW, Up, CW on top; Left, Down, Right below (52 dp keys, 164 x 140 dp in
+all). Drag any part to move it; tap the grip to fold it to one round key, and tap that to unfold. When it is dropped or
+shown, it slides up or down just enough to stay between Photos' top and bottom controls (the Straighten tab, the slider,
+the tool bar), so a tap meant for Photos never lands on a pad key.
+
 - **Rotate** sets the Straighten slider's value through accessibility (`ACTION_SET_PROGRESS`), then waits until Photos
   reports the new value. The value is in radians (range ±0.785 = ±45°; the number shown on screen is a −100…100 scale of
   that range, not degrees). A higher value turns the picture clockwise. 0.01 rad is the finest step a finger drag on the bar can make,
@@ -99,7 +104,7 @@ shifted by the larger touch slop (24 px), so they match `defaultSteps` for that 
 | **as a person uses it**: open Crop, press an arrow; the pad opens Straighten itself | Right, Left, Down, Up 3/3 each, 1 step each |
 | several presses in one Crop session, also after 5 CW presses | every press 1 step (5 Right presses ≈ 5 steps; 5 CW then 3 Right ≈ 3 steps) |
 
-Test-rig notes: if the pad sits over Photos' Straighten tab, `editor.sh`'s tap on that tab presses a pad button
+Test-rig notes: before the pad kept off Photos' controls, if it sat over Photos' Straighten tab, `editor.sh`'s tap on that tab presses a pad button
 instead (it made Left look dead and Right move 2 steps); `editor.sh` now refuses such a tap, and `CROP_ONLY=1` opens Crop
 only and lets the pad open Straighten, as in real use. `seq.sh` presses one arrow n times in one session.
 On Android 17 each `uiautomator dump` makes Android reconnect accessibility services, and a reconnect

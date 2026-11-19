@@ -79,6 +79,29 @@ internal object PhotosCrop {
         return if (Math.abs(target - current) < step / 100f) null else target
     }
 
+    /**
+     * The strip of screen between Photos' top controls and its bottom controls, where the pad can sit without covering
+     * a Photos button. [controls] are (top, bottom) of Photos' tappable controls; the ones wholly in the top 40% of
+     * the screen bound it from above and the ones wholly in the bottom 40% from below. Null when nothing is left.
+     */
+    fun freeBand(screenHeight: Int, controls: List<IntArray>): IntArray? {
+        var top = 0
+        var bottom = screenHeight
+        for ((controlTop, controlBottom) in controls.map { it[0] to it[1] }) {
+            if (controlBottom <= screenHeight * 2 / 5) top = maxOf(top, controlBottom)
+            if (controlTop >= screenHeight * 3 / 5) bottom = minOf(bottom, controlTop)
+        }
+        return if (bottom > top) intArrayOf(top, bottom) else null
+    }
+
+    /** Moves a pad at [y] with [height] up or down just enough to sit inside the free band (top edge first if it can't fit). */
+    fun snapY(y: Int, height: Int, bandTop: Int, bandBottom: Int): Int = when {
+        height >= bandBottom - bandTop -> bandTop
+        y < bandTop -> bandTop
+        y + height > bandBottom -> bandBottom - height
+        else -> y
+    }
+
     fun leaf(id: String?): String {
         if (id.isNullOrEmpty()) return ""
         return id.substring(id.lastIndexOf('/') + 1)

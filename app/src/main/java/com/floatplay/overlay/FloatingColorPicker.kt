@@ -194,6 +194,7 @@ class FloatingColorPicker(
         view.setImageResource(when (tool) {
             OverlayService.WIDGET_PLAY -> R.drawable.ic_play
             OverlayService.WIDGET_TABS -> R.drawable.ic_close_tab
+            OverlayService.WIDGET_PHOTOS -> R.drawable.ic_tool_photos
             else -> R.drawable.ic_rotate
         })
         view.setPadding(dp(14), dp(14), dp(14), dp(14))

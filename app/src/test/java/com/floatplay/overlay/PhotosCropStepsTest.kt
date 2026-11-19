@@ -54,4 +54,21 @@ class PhotosCropStepsTest {
         assertEquals(26, steps.panYPx)
         assertEquals(30, steps.rotationDragPx)
     }
+
+    @Test fun freeBandSitsBetweenTheTopAndBottomControls() {
+        // Pixel 7a crop screen: tool row 362..488, photo 591..1770, tool tabs 1852..2105, bottom bar 2174..2300
+        val controls = listOf(intArrayOf(151, 277), intArrayOf(362, 488), intArrayOf(591, 1770), intArrayOf(1852, 2105), intArrayOf(2174, 2300))
+        val band = PhotosCrop.freeBand(2400, controls)!!
+        assertEquals(488, band[0])
+        assertEquals(1852, band[1])
+    }
+
+    @Test fun padBelowTheBandIsLiftedAboveTheBottomControls() =
+        assertEquals(1852 - 368, PhotosCrop.snapY(1700, 368, 488, 1852))
+
+    @Test fun padAboveTheBandIsLoweredBelowTheTopControls() =
+        assertEquals(488, PhotosCrop.snapY(300, 368, 488, 1852))
+
+    @Test fun padInsideTheBandStays() =
+        assertEquals(900, PhotosCrop.snapY(900, 368, 488, 1852))
 }

@@ -37,6 +37,15 @@ object ToolSettings {
 
     internal fun defaultPhotosTapCount(used: Set<Int>): Int = listOf(5, 4, 3, 2, 1).first { it !in used }
 
+    /** The tool's icon in the settings list. */
+    fun icon(tool: String) = when (tool) {
+        OverlayService.WIDGET_PLAY -> R.drawable.ic_play
+        OverlayService.WIDGET_ROTATE -> R.drawable.ic_rotate
+        OverlayService.WIDGET_BRIGHTNESS -> R.drawable.ic_tool_brightness
+        OverlayService.WIDGET_TABS -> R.drawable.ic_tool_tabs
+        else -> R.drawable.ic_tool_photos
+    }
+
     fun minSize(tool: String) = if (tool == OverlayService.WIDGET_BRIGHTNESS) 64 else 40
     fun maxSize(tool: String) = if (tool == OverlayService.WIDGET_BRIGHTNESS) 160 else 96
 

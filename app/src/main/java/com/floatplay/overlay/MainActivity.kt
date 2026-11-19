@@ -3,6 +3,7 @@ package com.floatplay.overlay
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.widget.*
@@ -109,7 +110,24 @@ class MainActivity : Activity() {
             textSize = 18f
             setTextColor(0xFFF2F5FA.toInt())
         }
-        card.addView(label)
+        val tool = when (title) {
+            R.string.play_widget_title -> OverlayService.WIDGET_PLAY
+            R.string.rotate_widget_title -> OverlayService.WIDGET_ROTATE
+            R.string.brightness_widget_title -> OverlayService.WIDGET_BRIGHTNESS
+            R.string.photos_widget_title -> OverlayService.WIDGET_PHOTOS
+            else -> OverlayService.WIDGET_TABS
+        }
+        val icon = ImageView(this).apply {
+            setImageResource(ToolSettings.icon(tool))
+            imageTintList = ColorStateList.valueOf(label.currentTextColor)
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+        card.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(icon, LinearLayout.LayoutParams(dp(24), dp(24)).apply { marginEnd = dp(12) })
+            addView(label)
+        })
         card.addView(TextView(this).apply {
             text = getString(description)
             textSize = 14f
@@ -118,13 +136,6 @@ class MainActivity : Activity() {
         })
         val toggle = Switch(this).apply { text = getString(R.string.widget_enabled) }
         card.addView(toggle)
-        val tool = when (title) {
-            R.string.play_widget_title -> OverlayService.WIDGET_PLAY
-            R.string.rotate_widget_title -> OverlayService.WIDGET_ROTATE
-            R.string.brightness_widget_title -> OverlayService.WIDGET_BRIGHTNESS
-            R.string.photos_widget_title -> OverlayService.WIDGET_PHOTOS
-            else -> OverlayService.WIDGET_TABS
-        }
         addSettings(card, tool)
         root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
         return toggle
