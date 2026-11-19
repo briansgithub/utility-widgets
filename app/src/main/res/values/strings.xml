@@ -16,7 +16,7 @@
     <string name="permission_browser_tabs">Browser-tab accessibility</string>
     <string name="permission_photo_crop">Photo-crop accessibility</string>
     <string name="photos_widget_title">Photos crop</string>
-    <string name="photos_widget_description">Shows only while Google Photos is cropping and rotating a photo. Rotate moves the straighten bar by its smallest step. Each direction slides the photo by the smallest drag that still moves it. Enable photo-crop accessibility from Permissions.</string>
+    <string name="photos_widget_description">Shows only while Google Photos is cropping and rotating a photo. Rotate turns the photo by the straighten bar’s smallest step. Each direction slides the photo by about one screen pixel. Enable photo-crop accessibility from Permissions.</string>
     <string name="photos_accessibility_title">Float Tools — photo crop</string>
     <string name="photos_accessibility_button">Open photo-crop accessibility settings</string>
     <string name="photos_accessibility_needed">Enable Float Tools — photo crop in Android Accessibility settings first.</string>
