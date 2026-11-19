@@ -94,8 +94,15 @@ shifted by the larger touch slop (24 px), so they match `defaultSteps` for that 
 | 25 px | Right 3/3 no move; Up 2 of 3 no move, one jumped about 3 screen px |
 | **26 px button** | Right 10/10 (1795.8–1797.0), Left 10/10 (1801.9–1803.0), Down 10/10 (2401.4–2402.3), Up 9/10 (2407.9–2409.1; one at 2404.1, inside the baseline) |
 | 5 quick taps, Right and Left | moved about 4–5 steps (Right 1783.9 / 1782.9, Left 1815.2) |
+| Up, 10 more (11-19 midday) | 10/10 (2407.0–2408.1) |
+| 5 quick taps, Up and Down (back to back, and 0.1 s apart) | about 5 steps each (Up 2421.0 / 2421.0, Down 2390.0 / 2389.0) |
+| **as a person uses it**: open Crop, press an arrow; the pad opens Straighten itself | Right, Left, Down, Up 3/3 each, 1 step each |
+| several presses in one Crop session, also after 5 CW presses | every press 1 step (5 Right presses ≈ 5 steps; 5 CW then 3 Right ≈ 3 steps) |
 
-Test-rig note: on Android 17 each `uiautomator dump` makes Android reconnect accessibility services, and a reconnect
+Test-rig notes: if the pad sits over Photos' Straighten tab, `editor.sh`'s tap on that tab presses a pad button
+instead (it made Left look dead and Right move 2 steps); `editor.sh` now refuses such a tap, and `CROP_ONLY=1` opens Crop
+only and lets the pad open Straighten, as in real use. `seq.sh` presses one arrow n times in one session.
+On Android 17 each `uiautomator dump` makes Android reconnect accessibility services, and a reconnect
 cancels a drag that is running. The scripts now wait 2 s after the last dump before tapping and log the reconnects.
 
 ## Measuring another phone

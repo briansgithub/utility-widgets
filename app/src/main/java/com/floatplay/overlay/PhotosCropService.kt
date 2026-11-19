@@ -427,6 +427,7 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
                 }
             }
         }
+        Log.i(PhotosProbe.TAG, "pad pan from $startX,$startY by $dx,$dy area=$area pad=${panelScreenRect()} zoomed=$zoomed")
         val drag = {
             gesture(panPhases(startX, startY, dx, dy)) { finish() }
         }
