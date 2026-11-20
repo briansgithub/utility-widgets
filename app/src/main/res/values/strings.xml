@@ -3,7 +3,7 @@
     <string name="app_name">Float Tools</string>
     <string name="widget_screen_description">Add the Float Tools home-screen widget. Defaults: tap once for play/pause, twice for rotate, three times for brightness, four times for browser tabs, or five times for Photos crop; repeat the same taps to hide. Customize each tool below. Leave less than 450 ms between taps.</string>
     <string name="tabs_widget_title">Browser tabs</string>
-    <string name="tabs_widget_description">Chrome and Firefox controls. Tap the circle to close a tab; drag it to move. Swipe the rectangle left/right to change tabs; drag vertically or diagonally to move. Enable tab accessibility from Permissions. Disable the separate Tab Bubble service when using this tool to avoid duplicate controls.</string>
+    <string name="tabs_widget_description">Chrome and Firefox controls. Tap the circle to close a tab; drag it to move. Swipe the rectangle left/right to change tabs and up to open the tab viewer. Enable tab accessibility from Permissions. Disable the separate Tab Bubble service when using this tool to avoid duplicate controls.</string>
     <string name="permissions_title">Permissions</string>
     <string name="permissions_done">Done</string>
     <string name="notifications_permission_button">Allow notifications</string>
@@ -39,8 +39,8 @@
     <string name="tab_reverse_swipe">Reverse left/right tab swipes</string>
     <string name="tab_direction_default">Default: swipe left for next tab; right for previous tab.</string>
     <string name="tab_direction_reversed">Reversed: swipe left for previous tab; right for next tab.</string>
-    <string name="tab_strip_default">Swipe left for next tab, right for previous tab. Drag vertically or diagonally to move the whole widget.</string>
-    <string name="tab_strip_reversed">Swipe left for previous tab, right for next tab. Drag vertically or diagonally to move the whole widget.</string>
+    <string name="tab_strip_default">Swipe left for next tab, right for previous tab. Swipe up to open the tabs viewer. Move the widget by dragging the circle.</string>
+    <string name="tab_strip_reversed">Swipe left for previous tab, right for next tab. Swipe up to open the tabs viewer. Move the widget by dragging the circle.</string>
     <string name="tab_service_description">When this tool is enabled, Float Tools reads native Chrome and Firefox controls and performs clicks and toolbar gestures on your behalf to close or switch tabs. Accessibility permission can expose screen contents. Float Tools does not save or send screen contents and has no internet permission. The tab widget appears only over the supported browsers. You can disable this service in Android Accessibility settings at any time.</string>
     <string name="play_widget_title">Play / pause</string>
     <string name="play_widget_description">Control the active media player from any screen.</string>

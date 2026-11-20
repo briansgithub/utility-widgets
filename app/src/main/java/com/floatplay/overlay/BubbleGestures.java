@@ -1,14 +1,12 @@
 package com.floatplay.overlay;
 
-/** The strip locks to switching or moving from its initial direction, without a timer. */
+/** The circle closes or drags the widget; the strip only swipes (left/right switch tabs, up opens the viewer). */
 final class BubbleGestures {
     enum Zone { CIRCLE, STRIP }
-    enum Result { NONE, CLOSE, LEFT, RIGHT, DRAGGED }
-    private enum Axis { UNDECIDED, HORIZONTAL, MOVING }
+    enum Result { NONE, CLOSE, LEFT, RIGHT, UP, DRAGGED }
     private final float touchSlop, swipeDistance;
     private boolean active, dragging;
     private Zone zone;
-    private Axis axis;
     private float downX, downY, maxDistance;
 
     BubbleGestures(float touchSlop, float swipeDistance) {
@@ -19,7 +17,6 @@ final class BubbleGestures {
         this.zone = zone;
         active = true;
         dragging = false;
-        axis = Axis.UNDECIDED;
         downX = x; downY = y; maxDistance = 0;
     }
     void move(float x, float y) {
@@ -27,12 +24,6 @@ final class BubbleGestures {
         float dx = Math.abs(x - downX), dy = Math.abs(y - downY);
         maxDistance = Math.max(maxDistance, (float) Math.hypot(dx, dy));
         if (zone == Zone.CIRCLE && maxDistance > touchSlop) dragging = true;
-        if (zone == Zone.STRIP) {
-            if (axis == Axis.UNDECIDED && maxDistance > touchSlop) {
-                axis = dx > dy * 1.5f ? Axis.HORIZONTAL : Axis.MOVING;
-            }
-            if (axis == Axis.MOVING) dragging = true;
-        }
     }
     boolean isDragging() { return active && dragging; }
     Result up(float x, float y) {
@@ -45,6 +36,7 @@ final class BubbleGestures {
         if (Math.abs(dx) >= swipeDistance && Math.abs(dx) > Math.abs(dy) * 1.5f) {
             return dx < 0 ? Result.LEFT : Result.RIGHT;
         }
+        if (-dy >= swipeDistance && -dy > Math.abs(dx) * 1.5f) return Result.UP;
         return Result.NONE;
     }
     void cancel() { active = false; dragging = false; }
