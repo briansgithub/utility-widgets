@@ -101,7 +101,7 @@ public class TabAccessibilityService extends AccessibilityService implements Sha
         widget.setClipChildren(false);
         bubble = new Button(this);
         bubble.setText("×"); bubble.setTextSize(30 * scale); bubble.setTextColor(textColor);
-        bubble.setContentDescription("Close current browser tab. Drag this circle to move the whole widget.");
+        bubble.setContentDescription("Close current browser tab. Touch and drag this circle to move the whole widget.");
         bubble.setPadding(0, 0, 0, 0); bubble.setMinWidth(0); bubble.setMinHeight(0);
         GradientDrawable background = new GradientDrawable();
         background.setColor(color); background.setShape(GradientDrawable.OVAL);
@@ -154,6 +154,7 @@ public class TabAccessibilityService extends AccessibilityService implements Sha
                             case CLOSE: view.performClick(); break;
                             case LEFT: switchTab(TabControls.previousTab(TabAccessibilityService.this, true)); break;
                             case RIGHT: switchTab(TabControls.previousTab(TabAccessibilityService.this, false)); break;
+                            case UP: openViewer(); break;
                             default: break;
                         }
                         return true;
@@ -189,6 +190,17 @@ public class TabAccessibilityService extends AccessibilityService implements Sha
                 }
                 cancel();
             }
+        }
+        message("Couldn’t find the tab shortcut. Show the browser toolbar and try again.");
+    }
+    private void openViewer() {
+        if (pendingPackage != null || switching) return;
+        AccessibilityNodeInfo root = activeApp();
+        if (root == null || !BrowserRules.supported(root.getPackageName())) return;
+        // A plain click on the browser's tab button opens its tabs / tab groups viewer.
+        for (AccessibilityNodeInfo node : controls(root)) {
+            if (BrowserRules.tabButton(node.getViewIdResourceName(), node.getContentDescription())
+                    && act(node, AccessibilityNodeInfo.ACTION_CLICK)) return;
         }
         message("Couldn’t find the tab shortcut. Show the browser toolbar and try again.");
     }
