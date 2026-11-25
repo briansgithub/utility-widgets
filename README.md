@@ -4,7 +4,7 @@ Android app with independently configurable floating play/pause and auto-rotate 
 
 The integrated Float Tools app is at the repository root. Browser-tab controls are part of this app; the separate Tab Bubble project has been retired.
 
-Enable Brightness in the app to drag to move, double-tap and drag around the dial for 0–100% manual brightness, or tap for automatic brightness. The app provides a 64–160 dp dial size slider. A sun icon indicates manual mode; a sun surrounded by an arrow indicates automatic mode. Brightness requires change-system-settings access.
+Enable Brightness in the app to drag to move, double-tap and drag around the dial for 0–100% manual brightness, or tap for automatic brightness. Triple-tap the floating dial to hide it. Use the Brightness switch or the home-screen widget to restore it. The app provides a 64–160 dp dial size slider. A sun icon indicates manual mode; a sun surrounded by an arrow indicates automatic mode. Brightness requires change-system-settings access.
 
 Add **Float Tools** from your launcher's Widgets menu, or use **Add home-screen widget** in the app. By default:
 

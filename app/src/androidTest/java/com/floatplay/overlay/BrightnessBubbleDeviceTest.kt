@@ -62,7 +62,7 @@ class BrightnessBubbleDeviceTest {
         try {
             instrumentation.runOnMainSync {
                 assertTrue(ExtraDim.intensity(context) in 0..100)
-                bubble = BrightnessBubble(context, context.getSystemService(WindowManager::class.java))
+                bubble = BrightnessBubble(context, context.getSystemService(WindowManager::class.java)) { }
                 created = true
                 bubble.show()
                 // Exercise the observer refresh path without changing the user's brightness.

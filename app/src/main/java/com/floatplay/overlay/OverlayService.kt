@@ -143,7 +143,12 @@ class OverlayService : Service() {
         if (prefs.getBoolean(KEY_ROTATE_ENABLED, false) && Settings.System.canWrite(this)) showRotateBubble()
         else removeRotateBubble()
         if (prefs.getBoolean(KEY_BRIGHTNESS_ENABLED, false) && Settings.System.canWrite(this)) {
-            if (brightnessBubble == null) brightnessBubble = BrightnessBubble(this, windowManager)
+            if (brightnessBubble == null) {
+                brightnessBubble = BrightnessBubble(this, windowManager) {
+                    prefs.edit().putBoolean(KEY_BRIGHTNESS_ENABLED, false).apply()
+                    syncTools()
+                }
+            }
             brightnessBubble?.show()
         } else {
             brightnessBubble?.remove()
