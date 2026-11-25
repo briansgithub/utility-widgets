@@ -18,11 +18,12 @@ import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Drag to move; double-tap then turn to adjust brightness. */
+/** Drag to move, double-tap then turn to adjust brightness, or triple-tap to hide. */
 class BrightnessDialView(context: Context) : View(context) {
     var onLevelChanged: (Int) -> Unit = {}
     var onMove: (Int, Int) -> Unit = { _, _ -> }
     var onMoveFinished: () -> Unit = {}
+    var onHide: () -> Unit = {}
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var level = 50
     private var auto = false
@@ -32,6 +33,11 @@ class BrightnessDialView(context: Context) : View(context) {
     private var adjustingBrightness = false
     private var lastAngle: Double? = null
     private var turningLevel = 50f
+    private val configuration = ViewConfiguration.get(context)
+    private val tapTimeout = ViewConfiguration.getDoubleTapTimeout()
+    private var secondTapUpTime: Long? = null
+    private var thirdTap = false
+    private var multiTouch = false
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(event: MotionEvent): Boolean = true
         override fun onSingleTapConfirmed(event: MotionEvent): Boolean {
@@ -126,6 +132,12 @@ class BrightnessDialView(context: Context) : View(context) {
         val angle = if (distance >= dp(12)) atan2(y.toDouble(), x.toDouble()) else null
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                thirdTap = secondTapUpTime?.let { secondUp ->
+                    event.eventTime - secondUp in 0L..tapTimeout.toLong() &&
+                        hypot(event.rawX - downX, event.rawY - downY) < configuration.scaledDoubleTapSlop
+                } == true
+                secondTapUpTime = null
+                multiTouch = false
                 downX = event.rawX
                 downY = event.rawY
                 moved = false
@@ -137,7 +149,7 @@ class BrightnessDialView(context: Context) : View(context) {
             MotionEvent.ACTION_MOVE -> {
                 val dx = event.rawX - downX
                 val dy = event.rawY - downY
-                if (hypot(dx, dy) > ViewConfiguration.get(context).scaledTouchSlop) {
+                if (hypot(dx, dy) > configuration.scaledTouchSlop) {
                     moved = true
                 }
                 if (moved && !adjustingBrightness) {
@@ -162,9 +174,22 @@ class BrightnessDialView(context: Context) : View(context) {
                 isPressed = false
                 if (moved && !adjustingBrightness) onMoveFinished()
                 lastAngle = null
-
+                if (!moved && !multiTouch && event.eventTime - event.downTime <= tapTimeout) {
+                    if (thirdTap) {
+                        // This down began a new single tap in GestureDetector. Cancel its confirmation.
+                        val cancel = MotionEvent.obtain(event)
+                        cancel.action = MotionEvent.ACTION_CANCEL
+                        gestures.onTouchEvent(cancel)
+                        cancel.recycle()
+                        onHide()
+                        return true
+                    }
+                    if (adjustingBrightness) secondTapUpTime = event.eventTime
+                }
             }
+            MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP -> multiTouch = true
             MotionEvent.ACTION_CANCEL -> {
+                secondTapUpTime = null
                 isPressed = false
                 if (moved && !adjustingBrightness) onMoveFinished()
                 lastAngle = null

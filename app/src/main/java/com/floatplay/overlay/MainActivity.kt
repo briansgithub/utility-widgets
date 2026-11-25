@@ -3,6 +3,7 @@ package com.floatplay.overlay
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.widget.*
@@ -22,10 +23,23 @@ class MainActivity : Activity() {
     private lateinit var brightnessSwitch: Switch
     private lateinit var tabsSwitch: Switch
     private lateinit var photosSwitch: Switch
+    private val brightnessPreferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == OverlayService.KEY_BRIGHTNESS_ENABLED) refreshControls()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         buildScreen()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        ToolSettings.prefs(this).registerOnSharedPreferenceChangeListener(brightnessPreferenceListener)
+    }
+
+    override fun onStop() {
+        ToolSettings.prefs(this).unregisterOnSharedPreferenceChangeListener(brightnessPreferenceListener)
+        super.onStop()
     }
 
     override fun onResume() {

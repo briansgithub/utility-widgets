@@ -12,7 +12,11 @@ import android.view.WindowManager
 import android.widget.Toast
 import kotlin.math.roundToInt
 
-class BrightnessBubble(private val context: Context, private val windows: WindowManager) {
+class BrightnessBubble(
+    private val context: Context,
+    private val windows: WindowManager,
+    private val onHide: () -> Unit,
+) {
     private val prefs = context.getSharedPreferences(OverlayService.PREFS, Context.MODE_PRIVATE)
     private val resolver = context.contentResolver
     private var view: BrightnessDialView? = null
@@ -55,6 +59,7 @@ class BrightnessBubble(private val context: Context, private val windows: Window
         val dial = BrightnessDialView(context).apply {
             setOnClickListener { toggleAutomatic() }
             onLevelChanged = { percent -> setLevel(percent) }
+            onHide = this@BrightnessBubble.onHide
             onMove = { dx, dy ->
                 val bounds = windows.currentWindowMetrics.bounds
                 params.x = (params.x + dx).coerceIn(0, (bounds.width() - params.width).coerceAtLeast(0))
