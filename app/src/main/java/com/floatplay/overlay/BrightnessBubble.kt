@@ -26,11 +26,13 @@ class BrightnessBubble(
     private var observing = false
     private var errorShown = false
     private var adjusting = false
-    private var lastAppliedBrightness = -1
+    private var lastApplied: DimSetting? = null
+    private val dimLayer = DimLayer(context, windows)
+    private var dimmedLevel = -1
     private var activeToast: Toast? = null
-    private val maximumBrightness = BrightnessCalibration.maximumSetting().also {
+    private val curve = DimCurve(BrightnessCalibration.maximumSetting().also {
         Log.i("FloatToolsBrightness", "Manual brightness maximum setting: $it")
-    }
+    })
     private val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) {
             if (!adjusting) refresh()
@@ -101,21 +103,21 @@ class BrightnessBubble(
 
     private fun beginAdjustment() {
         adjusting = true
-        val actual = brightness()
-        lastAppliedBrightness = actual
-        view?.startAdjustingAt(BrightnessRange.position(actual, maximumBrightness))
+        lastApplied = currentSetting()
+        view?.startAdjustingAt(currentPosition())
     }
 
     private fun endAdjustment() {
         adjusting = false
-        lastAppliedBrightness = -1
+        lastApplied = null
         refresh()
     }
 
+    /** The dial changes brightness only: a hardware level plus a software trim below the hardware steps. */
     private fun setLevel(position: Float) {
-        val target = BrightnessRange.brightness(position, maximumBrightness)
+        val target = curve.setting(position)
         val wasAuto = automatic()
-        if (adjusting && !wasAuto && target == lastAppliedBrightness) return
+        if (adjusting && !wasAuto && target == lastApplied) return
 
         val success = try {
             Settings.System.canWrite(context) &&
@@ -123,18 +125,29 @@ class BrightnessBubble(
                     Settings.System.SCREEN_BRIGHTNESS_MODE,
                     Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL,
                 )) &&
-                writeSetting(Settings.System.SCREEN_BRIGHTNESS, target)
+                applySetting(target)
         } catch (error: RuntimeException) {
             Log.w("FloatPlay", "Could not change brightness", error)
             false
         }
         if (success) {
             errorShown = false
-            lastAppliedBrightness = target
+            lastApplied = target
         } else {
             showErrorOnce()
         }
         if (!adjusting) refresh()
+    }
+
+    private fun applySetting(target: DimSetting): Boolean {
+        val before = dimLayer.factor
+        // Order the two writes so the output moves monotonically instead of overshooting between them.
+        val lighter = target.factor >= before
+        if (lighter && !dimLayer.apply(target.factor)) return false
+        if (!writeSetting(Settings.System.SCREEN_BRIGHTNESS, target.level)) return false
+        dimmedLevel = target.level
+        if (!lighter && !dimLayer.apply(target.factor)) return false
+        return true
     }
 
     private fun toggleAutomatic() {
@@ -160,7 +173,10 @@ class BrightnessBubble(
 
     private fun toggleExtraDim() {
         if (!ExtraDim.available(context)) {
-            showToast(R.string.extra_dim_access_needed)
+            activeToast?.cancel()
+            activeToast = Toast.makeText(
+                context, context.getString(R.string.extra_dim_access_needed, ExtraDim.GRANT_COMMAND), Toast.LENGTH_LONG,
+            ).also { it.show() }
             return
         }
         val active = ExtraDim.toggle(context)
@@ -173,19 +189,27 @@ class BrightnessBubble(
     }
 
     private fun refresh() {
-        val actual = brightness()
-        view?.setState(
-            BrightnessRange.position(actual, maximumBrightness),
-            automatic(),
-            ExtraDim.isActive(context),
-        )
+        view?.setState(currentPosition(), automatic(), ExtraDim.isActive(context))
+    }
+
+    /** The software trim only counts while the hardware level and manual mode are still ours. */
+    private fun currentSetting(): DimSetting {
+        val level = brightness()
+        if (dimLayer.factor < 1.0 && (automatic() || level != dimmedLevel)) dimLayer.clear()
+        return DimSetting(level, dimLayer.factor)
+    }
+
+    private fun currentPosition(): Float {
+        val setting = currentSetting()
+        return curve.position(setting.level, setting.factor)
     }
 
     fun remove() {
         adjusting = false
-        lastAppliedBrightness = -1
+        lastApplied = null
         activeToast?.cancel()
         activeToast = null
+        dimLayer.clear()
         if (observing) resolver.unregisterContentObserver(observer)
         observing = false
         view?.let { try { windows.removeView(it) } catch (_: RuntimeException) { } }
@@ -212,7 +236,7 @@ class BrightnessBubble(
     ) == Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC
 
     private fun brightness(): Int = Settings.System.getInt(resolver, Settings.System.SCREEN_BRIGHTNESS, 128)
-        .coerceIn(BrightnessRange.MINIMUM_BRIGHTNESS, maximumBrightness)
+        .coerceIn(DimCurve.MINIMUM_LEVEL, curve.maximum)
 
     private fun writeSetting(name: String, value: Int): Boolean = Settings.System.putInt(resolver, name, value)
 

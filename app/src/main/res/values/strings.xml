@@ -108,5 +108,5 @@
     <string name="color_orange">Orange</string>
     <string name="color_green">Green</string>
     <string name="color_white">White</string>
-    <string name="extra_dim_access_needed">Extra Dim control needs one-time setup through a connected computer.</string>
+    <string name="extra_dim_access_needed">Extra Dim needs a one-time grant from a computer. Connect the phone with USB or wireless debugging and run: %1$s</string>
 </resources>

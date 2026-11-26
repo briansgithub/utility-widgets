@@ -62,7 +62,7 @@ class PermissionsActivity : Activity() {
         button(content, R.string.notifications_permission_button) {
             Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
         }
-        if (Build.VERSION.SDK_INT >= 31 && !ExtraDim.available(this)) text(content, getString(R.string.extra_dim_access_needed))
+        if (Build.VERSION.SDK_INT >= 31 && !ExtraDim.available(this)) text(content, getString(R.string.extra_dim_access_needed, ExtraDim.GRANT_COMMAND)).setTextIsSelectable(true)
         screen.addView(ScrollView(this).apply { addView(content) }, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(screen)
     }
