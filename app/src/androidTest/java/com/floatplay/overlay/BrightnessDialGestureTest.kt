@@ -14,11 +14,12 @@ import org.junit.runner.RunWith
 class BrightnessDialGestureTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
-    @Test fun threeTapsHideWithoutTogglingAutomaticBrightness() = checkGesture(
+    @Test fun threeTapsHideWithoutTogglingAutomaticBrightnessOrExtraDim() = checkGesture(
         actions = { tap(); tap(); tap() },
         verify = {
             assertEquals(1, hides)
             assertEquals(0, clicks)
+            assertEquals(0, extraDimToggles)
             assertEquals(0, adjustments)
             assertEquals(0, moves)
         },
@@ -28,7 +29,19 @@ class BrightnessDialGestureTest {
         actions = { tap() },
         verify = {
             assertEquals(1, clicks)
+            assertEquals(0, extraDimToggles)
             assertEquals(0, hides)
+        },
+    )
+
+    @Test fun doubleTapWithoutDragTogglesExtraDimOnly() = checkGesture(
+        actions = { tap(); tap() },
+        verify = {
+            assertEquals(1, extraDimToggles)
+            assertEquals(0, clicks)
+            assertEquals(0, hides)
+            assertEquals(0, adjustments)
+            assertEquals(0, moves)
         },
     )
 
@@ -42,6 +55,7 @@ class BrightnessDialGestureTest {
         },
         verify = {
             assertEquals(1, adjustments)
+            assertEquals(0, extraDimToggles)
             assertEquals(0, moves)
             assertEquals(0, hides)
             assertEquals(1, clicks)
@@ -60,12 +74,13 @@ class BrightnessDialGestureTest {
             assertEquals(1, moves)
             assertEquals(1, finishedMoves)
             assertEquals(0, hides)
+            assertEquals(0, extraDimToggles)
             assertEquals(0, clicks)
             assertEquals(0, adjustments)
         },
     )
 
-    @Test fun lateThirdTapStartsAnotherGesture() = checkGesture(
+    @Test fun lateThirdTapCompletesDoubleTapAndStartsAnotherGesture() = checkGesture(
         actions = {
             tap()
             tap()
@@ -74,6 +89,7 @@ class BrightnessDialGestureTest {
         },
         verify = {
             assertEquals(0, hides)
+            assertEquals(1, extraDimToggles)
             assertEquals(1, clicks)
         },
     )
@@ -84,8 +100,8 @@ class BrightnessDialGestureTest {
             events = DialEvents(BrightnessDialView(instrumentation.targetContext))
             events.actions()
         }
-        // Give GestureDetector time to confirm any pending single tap.
-        SystemClock.sleep(ViewConfiguration.getDoubleTapTimeout() + 50L)
+        // Give the gesture timer time to confirm any pending single or double tap.
+        SystemClock.sleep(ViewConfiguration.getDoubleTapTimeout() + 80L)
         instrumentation.waitForIdleSync()
         events.verify()
     }
@@ -93,6 +109,7 @@ class BrightnessDialGestureTest {
     private class DialEvents(private val dial: BrightnessDialView) {
         var hides = 0
         var clicks = 0
+        var extraDimToggles = 0
         var adjustments = 0
         var moves = 0
         var finishedMoves = 0
@@ -102,6 +119,7 @@ class BrightnessDialGestureTest {
         init {
             dial.layout(0, 0, 500, 500)
             dial.setOnClickListener { clicks++ }
+            dial.onToggleExtraDim = { extraDimToggles++ }
             dial.onHide = { hides++ }
             dial.onLevelChanged = { adjustments++ }
             dial.onMove = { _, _ -> moves++ }

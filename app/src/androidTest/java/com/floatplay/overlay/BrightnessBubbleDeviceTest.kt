@@ -10,43 +10,46 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class BrightnessBubbleDeviceTest {
-    @Test fun extraDimFadesBeforeSwitchingOffAndReversesWithoutDelayedOff() {
+    @Test fun extraDimTogglePreservesStrengthAndRestoresDefaultWhenZero() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
-        fun systemValue(key: String): String = instrumentation.uiAutomation
-            .executeShellCommand("settings get secure $key").use { descriptor ->
+        assertTrue("Extra Dim permission is required for this check", ExtraDim.available(context))
+        fun shell(command: String): String = instrumentation.uiAutomation
+            .executeShellCommand(command).use { descriptor ->
                 java.io.FileInputStream(descriptor.fileDescriptor).bufferedReader().readText().trim()
             }
+        fun systemValue(key: String) = shell("settings get secure $key")
+
         val originalActive = systemValue(ExtraDim.ACTIVATED)
         val originalStrength = systemValue(ExtraDim.INTENSITY)
-        fun set(value: Int) = instrumentation.runOnMainSync { assertTrue(ExtraDim.set(context, value)) }
         try {
-            set(40)
-            android.os.SystemClock.sleep(300)
+            // If strength was previously zeroed, enabling Extra Dim restores a visible default.
+            shell("settings put secure ${ExtraDim.ACTIVATED} 0")
+            shell("settings put secure ${ExtraDim.INTENSITY} 0")
+            instrumentation.runOnMainSync {
+                assertEquals(true, ExtraDim.toggle(context))
+            }
             assertEquals("1", systemValue(ExtraDim.ACTIVATED))
-            assertEquals("40", systemValue(ExtraDim.INTENSITY))
-            set(0)
-            android.os.SystemClock.sleep(80)
-            assertEquals("1", systemValue(ExtraDim.ACTIVATED))
-            assertTrue(systemValue(ExtraDim.INTENSITY).toInt() in 0..39)
-            android.os.SystemClock.sleep(350)
+            assertEquals(ExtraDim.DEFAULT_INTENSITY.toString(), systemValue(ExtraDim.INTENSITY))
+
+            // Turning Extra Dim off preserves the user's configured intensity.
+            shell("settings put secure ${ExtraDim.INTENSITY} 35")
+            instrumentation.runOnMainSync {
+                assertEquals(false, ExtraDim.toggle(context))
+            }
             assertEquals("0", systemValue(ExtraDim.ACTIVATED))
-            assertEquals("0", systemValue(ExtraDim.INTENSITY))
-            set(40)
-            android.os.SystemClock.sleep(300)
-            set(0)
-            android.os.SystemClock.sleep(80)
-            set(35)
-            android.os.SystemClock.sleep(350)
+            assertEquals("35", systemValue(ExtraDim.INTENSITY))
+
+            // Turning Extra Dim back on keeps the configured intensity intact.
+            instrumentation.runOnMainSync {
+                assertEquals(true, ExtraDim.toggle(context))
+            }
             assertEquals("1", systemValue(ExtraDim.ACTIVATED))
             assertEquals("35", systemValue(ExtraDim.INTENSITY))
         } finally {
-            set(if (originalActive == "1") originalStrength.toIntOrNull() ?: 0 else 0)
-            android.os.SystemClock.sleep(400)
-            // Restore the user's stored system preference as well as activation.
             for ((key, value) in listOf(ExtraDim.INTENSITY to originalStrength, ExtraDim.ACTIVATED to originalActive)) {
                 val command = if (value == "null") "settings delete secure $key" else "settings put secure $key $value"
-                instrumentation.uiAutomation.executeShellCommand(command).close()
+                shell(command)
             }
         }
     }
@@ -61,7 +64,8 @@ class BrightnessBubbleDeviceTest {
         var created = false
         try {
             instrumentation.runOnMainSync {
-                assertTrue(ExtraDim.intensity(context) in 0..100)
+                // Reading active state must never throw even if hidden secure keys are restricted.
+                ExtraDim.isActive(context)
                 bubble = BrightnessBubble(context, context.getSystemService(WindowManager::class.java)) { }
                 created = true
                 bubble.show()
