@@ -79,13 +79,16 @@
     <string name="invalid_color">Enter a color such as #167D8D.</string>
     <string name="unassigned_taps">No tool assigned to this tap count.</string>
     <string name="brightness_widget_title">Brightness</string>
-    <string name="brightness_widget_description" formatted="false">Drag to move. Double-tap and drag around the dial to adjust brightness. Tap to toggle automatic brightness. Triple-tap to hide. The lowest range gradually adds Extra Dim.</string>
+    <string name="brightness_widget_description" formatted="false">Drag to move. Double-tap and drag around the dial to adjust brightness. Tap to toggle automatic brightness. Double-tap to toggle Extra Dim. Triple-tap to hide.</string>
     <string name="brightness_auto_on">Auto on</string>
     <string name="brightness_auto_off">Auto off</string>
     <string name="brightness_toggle_auto">Toggle auto brightness</string>
-    <string name="brightness_dial_state">Brightness: %1$d%%, %2$s. Drag to move; double-tap and turn to adjust; triple-tap to hide. The lowest range adds Extra Dim.</string>
+    <string name="brightness_dial_state">Brightness: %1$d%%, %2$s, %3$s. Drag to move; double-tap to toggle Extra Dim; double-tap and turn to adjust; triple-tap to hide.</string>
     <string name="brightness_percent">%1$d%%</string>
     <string name="brightness_failed">Could not change brightness. Check system settings access.</string>
+    <string name="extra_dim_on">Extra Dim on</string>
+    <string name="extra_dim_off">Extra Dim off</string>
+    <string name="extra_dim_failed">Could not toggle Extra Dim.</string>
     <string name="media_access_button">Allow playback-state access</string>
     <string name="media_access_needed">For precise play/pause icons, allow Float Tools notification access. Without it, the icon follows music audio activity.</string>
     <string name="choose_color">Choose button color</string>

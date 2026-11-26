@@ -4,7 +4,7 @@ Android app with independently configurable floating play/pause and auto-rotate 
 
 The integrated Float Tools app is at the repository root. Browser-tab controls are part of this app; the separate Tab Bubble project has been retired.
 
-Enable Brightness in the app to drag to move, double-tap and drag around the dial for 0–100% manual brightness, or tap for automatic brightness. Triple-tap the floating dial to hide it. Use the Brightness switch or the home-screen widget to restore it. The app provides a 64–160 dp dial size slider. A sun icon indicates manual mode; a sun surrounded by an arrow indicates automatic mode. Brightness requires change-system-settings access.
+Enable Brightness in the app to drag to move, double-tap and drag around the dial for 0–100% manual brightness, tap for automatic brightness, or double-tap (without dragging) to toggle Android Extra Dim on or off. Triple-tap the floating dial to hide it. Use the Brightness switch or the home-screen widget to restore it. The app provides a 64–160 dp dial size slider. A sun icon indicates manual mode; a sun surrounded by an arrow indicates automatic mode; a crescent moon at the bottom of the dial with an indigo tint indicates Extra Dim is active. Brightness requires change-system-settings access.
 
 Add **Float Tools** from your launcher's Widgets menu, or use **Add home-screen widget** in the app. By default:
 
@@ -33,6 +33,6 @@ Package/application ID remains `com.floatplay.overlay` so existing installations
 
 Build: `./gradlew.bat :app:assembleDebug :app:lintDebug`
 
-The brightness dial reserves its bottom 20% for progressively stronger Android Extra Dim. Above that range, Extra Dim turns off and the dial controls normal brightness. The center auto-mode icon is compact. Extra Dim needs Android 12+ and a one-time connected-computer grant: `adb shell pm grant com.floatplay.overlay android.permission.WRITE_SECURE_SETTINGS`. Without this optional grant, the dial retains its normal brightness range. Enabling automatic brightness clears Extra Dim.
+Double-tapping the brightness dial (without dragging) toggles Android Extra Dim on or off independently of the dial position, preserving your configured Extra Dim intensity. Extra Dim needs Android 12+ and a one-time connected-computer grant: `adb shell pm grant com.floatplay.overlay android.permission.WRITE_SECURE_SETTINGS`. Without this optional grant, double-tapping prompts about the one-time setup while normal brightness controls continue working.
 
-The normal-brightness section uses Android’s perceptual brightness curve and the built-in display configuration’s high-brightness transition as its manual maximum. This keeps maximum manual brightness at the end of the dial, rather than saturating midway. If a device does not expose a readable built-in display configuration, the app falls back to the full standard brightness range.
+The full 0–100% brightness dial uses a continuous exponential (Weber-Fechner) perceptual curve mapped to hardware brightness `1..maximum`, where `maximum` uses the built-in display configuration’s high-brightness transition (or 255 if unreadable). This gives fine, even granularity across the dimmer half of the dial and exact round-trip accuracy for every hardware brightness level.

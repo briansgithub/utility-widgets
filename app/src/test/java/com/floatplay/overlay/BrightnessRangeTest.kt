@@ -4,62 +4,75 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BrightnessRangeTest {
-    @Test fun lowestRangeAddsDimWhileKeepingHardwareAtMinimum() {
-        assertEquals(BrightnessRange.Output(1, 100), BrightnessRange.output(0, true))
-        assertEquals(BrightnessRange.Output(1, 50), BrightnessRange.output(10, true))
-        assertEquals(BrightnessRange.Output(1, 0), BrightnessRange.output(20, true))
-        assertEquals(BrightnessRange.Output(255, 0), BrightnessRange.output(100, true))
-    }
-
-    @Test fun dialBrightensMonotonicallyAcrossDimBoundary() {
-        var previous = BrightnessRange.output(0, true)
-        for (position in 0..100) {
-            val next = BrightnessRange.output(position, true)
-            assertTrue(next.brightness >= previous.brightness)
-            assertTrue(next.dim <= previous.dim)
-            if (position < 100) assertTrue(next.brightness < 255)
-            previous = next
+    @Test fun endpointsMapToMinimumAndMaximumHardwareBrightness() {
+        for (maximum in listOf(2, 100, 156, 255)) {
+            assertEquals(1, BrightnessRange.brightness(0f, maximum))
+            assertEquals(maximum, BrightnessRange.brightness(1f, maximum))
+            assertEquals(0f, BrightnessRange.position(1, maximum), 1e-6f)
+            assertEquals(1f, BrightnessRange.position(maximum, maximum), 1e-6f)
         }
     }
 
-    @Test fun optionalPermissionFallbackPreservesNormalRange() {
-        assertEquals(BrightnessRange.Output(1, 0), BrightnessRange.output(0, false))
-        assertEquals(BrightnessRange.Output(22, 0), BrightnessRange.output(50, false))
-        assertEquals(BrightnessRange.Output(255, 0), BrightnessRange.output(100, false))
-        assertEquals(50, BrightnessRange.position(22, 0, false))
-    }
-
-    @Test fun manualCapUsesWholeDialInsteadOfReachingMaxHalfway() {
-        val maximum = 156 // Pixel 9 Pro: normal backlight max 0.61, setting 1 + 254 * 0.61.
-        for (extended in listOf(false, true)) {
-            for (position in 0 until 100) {
-                val output = BrightnessRange.output(position, extended, maximum)
-                assertTrue(output.brightness < maximum)
+    @Test fun curveIsStrictlyMonotonicAndEveryHardwareLevelIsReachable() {
+        for (maximum in listOf(156, 255)) {
+            var previous = 0
+            val seen = HashSet<Int>()
+            for (step in 0..10_000) {
+                val pos = step / 10_000f
+                val value = BrightnessRange.brightness(pos, maximum)
+                assertTrue("Decreased at pos=$pos: $value < $previous", value >= previous)
+                seen.add(value)
+                previous = value
             }
-            assertEquals(BrightnessRange.Output(maximum, 0), BrightnessRange.output(100, extended, maximum))
-            assertEquals(100, BrightnessRange.position(maximum, 0, extended, maximum))
-            assertEquals(100, BrightnessRange.position(255, 0, extended, maximum))
+            assertEquals(maximum, seen.size)
         }
-        // Midpoint of the normal-brightness section should match ~50% of the
-        // system slider, not half the raw backlight output.
-        val midpoint = BrightnessRange.output(60, true, maximum)
-        assertTrue(midpoint.brightness in 13..15)
-        assertTrue(BrightnessRange.position(midpoint.brightness, 0, true, maximum) in 59..61)
-        assertEquals(BrightnessRange.Output(1, 50), BrightnessRange.output(10, true, maximum))
     }
 
-    @Test fun valuesOutsideRangeAreClamped() {
-        assertEquals(BrightnessRange.output(0, true, 156), BrightnessRange.output(-20, true, 156))
-        assertEquals(BrightnessRange.output(100, true, 156), BrightnessRange.output(120, true, 156))
+    @Test fun everyHardwareLevelRoundTripsExactly() {
+        for (maximum in listOf(2, 10, 156, 255)) {
+            var previousPos = -1f
+            for (level in 1..maximum) {
+                val pos = BrightnessRange.position(level, maximum)
+                assertTrue("Position did not increase for level=$level", pos > previousPos)
+                assertEquals("Round-trip mismatch for level=$level, max=$maximum",
+                    level, BrightnessRange.brightness(pos, maximum))
+                previousPos = pos
+            }
+        }
     }
 
-    @Test fun dimTapersGentlyAtNormalBrightnessBoundary() {
-        assertEquals(1, BrightnessRange.output(19, true).dim)
-        assertEquals(3, BrightnessRange.output(18, true).dim)
-        assertEquals(0, BrightnessRange.output(20, true).dim)
-        for (position in 0..19) {
-            val output = BrightnessRange.output(position, true)
-            assertEquals(position, BrightnessRange.position(output.brightness, output.dim, true))
+    @Test fun dimmerHalfHasMuchFinerGranularityThanBrighterHalf() {
+        val maximum = 156 // Pixel 9 Pro manual HBM transition (0.61 -> 156).
+        val quarter = BrightnessRange.brightness(0.25f, maximum)
+        val half = BrightnessRange.brightness(0.5f, maximum)
+        val threeQuarters = BrightnessRange.brightness(0.75f, maximum)
+        assertEquals(4, quarter)
+        assertEquals(12, half)
+        assertEquals(44, threeQuarters)
+        // Bottom half spans only 1..12 (11 steps across 50% of dial); top half spans 12..156.
+        assertTrue(half - 1 < (maximum - half) / 10)
+        // Each step at the low end changes by at most 1 hardware unit per 1% of dial travel.
+        for (p in 0 until 50) {
+            val delta = BrightnessRange.brightness((p + 1) / 100f, maximum) -
+                BrightnessRange.brightness(p / 100f, maximum)
+            assertTrue("Step too large in dimmer half at $p%: delta=$delta", delta in 0..1)
         }
+    }
+
+    @Test fun fullRangeDefaultHasExactGeometricQuarters() {
+        assertEquals(1, BrightnessRange.brightness(0f))
+        assertEquals(4, BrightnessRange.brightness(0.25f))
+        assertEquals(16, BrightnessRange.brightness(0.5f))
+        assertEquals(64, BrightnessRange.brightness(0.75f))
+        assertEquals(255, BrightnessRange.brightness(1f))
+    }
+
+    @Test fun outOfRangeAndNanValuesAreClamped() {
+        assertEquals(1, BrightnessRange.brightness(-0.5f, 156))
+        assertEquals(156, BrightnessRange.brightness(1.5f, 156))
+        assertEquals(1, BrightnessRange.brightness(Float.NaN, 156))
+        assertEquals(0f, BrightnessRange.position(0, 156), 1e-6f)
+        assertEquals(0f, BrightnessRange.position(-5, 156), 1e-6f)
+        assertEquals(1f, BrightnessRange.position(255, 156), 1e-6f)
     }
 }
