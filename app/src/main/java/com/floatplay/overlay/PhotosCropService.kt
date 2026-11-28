@@ -242,8 +242,7 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
             message(getString(R.string.photos_slider_missing))
             return
         }
-        val slop = ViewConfiguration.get(this).scaledTouchSlop
-        val distance = PhotosCrop.rotationDragPx(slop).toFloat()
+        val distance = chosenDrag(PhotosCrop.KEY_ROTATION_PX, PhotosCrop.rotationChoices)
         val sign = if (clockwise) -1f else 1f
         val y = bounds.exactCenterY()
         val inset = 8f
@@ -293,7 +292,7 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
             }
         }
         val slop = ViewConfiguration.get(this).scaledTouchSlop
-        val distance = PhotosCrop.rotationDragPx(slop).toFloat()
+        val distance = chosenDrag(PhotosCrop.KEY_TRANSLATION_PX, PhotosCrop.translationChoices)
         val pan = {
             val path = Path().apply {
                 moveTo(startX, startY)
@@ -316,6 +315,12 @@ class PhotosCropService : AccessibilityService(), SharedPreferences.OnSharedPref
             lineTo(startX + dp(24) + half, startY)
         }
         zoomed = dispatch(listOf(left, right), 280L, pan)
+    }
+
+    private fun chosenDrag(key: String, allowed: IntArray): Float {
+        val slop = ViewConfiguration.get(this).scaledTouchSlop
+        val stored = toolPrefs?.getInt(key, 0) ?: 0
+        return PhotosCrop.dragDistance(stored, allowed, slop).toFloat()
     }
 
     private fun dispatch(paths: List<Path>, durationMs: Long, then: (() -> Unit)? = null): Boolean {

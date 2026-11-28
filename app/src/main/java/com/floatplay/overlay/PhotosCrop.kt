@@ -21,12 +21,24 @@ internal object PhotosCrop {
 
     fun isPanTarget(id: String?): Boolean = leaf(id) in panTargets
 
+    const val KEY_ROTATION_PX = "photos_rotation_px"
+    const val KEY_TRANSLATION_PX = "photos_translation_px"
+
+    /** 0 selects the measured default. The other values are drags that moved the photo, plus 1 px. */
+    val rotationChoices = intArrayOf(0, 1, 24, 25, 27, 28, 30, 32, 36, 40, 48)
+    val translationChoices = intArrayOf(0, 1, 22, 24, 25, 40)
+
     /**
      * Shortest slider drag that stays a drag.
      * Anything at or below the touch slop is delivered as a tap and jumps the angle.
      * Four pixels past the slop is the first drag, and on the crop bar that drag is one visible step.
      */
     fun rotationDragPx(touchSlopPx: Int): Int = touchSlopPx + 4
+
+    fun dragDistance(storedPx: Int, allowed: IntArray, touchSlopPx: Int): Int {
+        if (storedPx <= 0 || storedPx !in allowed) return rotationDragPx(touchSlopPx)
+        return storedPx
+    }
 
     /** Smallest pinch that still changes a fitted crop. A shorter one is delivered as two taps. */
     fun minimumPinchPx(touchSlopPx: Int): Int = touchSlopPx + 1
