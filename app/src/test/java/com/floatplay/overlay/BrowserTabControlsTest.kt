@@ -25,6 +25,11 @@ class BrowserTabControlsTest {
         assertEquals(-25, PhotosCrop.rotationDragX(clockwise = true, touchSlopPx = 21))
         assertEquals(28, PhotosCrop.rotationDragX(clockwise = false, touchSlopPx = 24))
         assertEquals(22, PhotosCrop.minimumPinchPx(21))
+        assertEquals(25, PhotosCrop.dragDistance(0, PhotosCrop.rotationChoices, 21))
+        assertEquals(1, PhotosCrop.dragDistance(1, PhotosCrop.rotationChoices, 21))
+        assertEquals(28, PhotosCrop.dragDistance(28, PhotosCrop.rotationChoices, 24))
+        assertEquals(25, PhotosCrop.dragDistance(99, PhotosCrop.rotationChoices, 21))
+        assertEquals(40, PhotosCrop.dragDistance(40, PhotosCrop.translationChoices, 21))
     }
     @Test fun gestureSafetyRegression() = BubbleGesturesCheck.main(emptyArray())
     @Test fun nativeBrowserMatchingRegression() = BrowserRulesCheck.main(emptyArray())

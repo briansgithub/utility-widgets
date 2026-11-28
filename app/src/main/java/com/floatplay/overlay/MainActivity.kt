@@ -171,6 +171,29 @@ class MainActivity : Activity() {
                 } else prefs.edit().putInt("${tool}_taps", count).apply()
             }
         }
+        if (tool == OverlayService.WIDGET_PHOTOS) {
+            addDragChoice(card, ::label, PhotosCrop.KEY_ROTATION_PX, R.string.photos_rotation_increment, listOf(
+                0 to R.string.photos_step_smallest,
+                1 to R.string.photos_step_1_scrub,
+                24 to R.string.photos_step_24_rotate,
+                25 to R.string.photos_step_25_rotate,
+                27 to R.string.photos_step_27,
+                28 to R.string.photos_step_28,
+                30 to R.string.photos_step_30,
+                32 to R.string.photos_step_32,
+                36 to R.string.photos_step_36,
+                40 to R.string.photos_step_40_rotate,
+                48 to R.string.photos_step_48,
+            ))
+            addDragChoice(card, ::label, PhotosCrop.KEY_TRANSLATION_PX, R.string.photos_translation_increment, listOf(
+                0 to R.string.photos_step_smallest,
+                1 to R.string.photos_step_1_move,
+                22 to R.string.photos_step_22,
+                24 to R.string.photos_step_24_move,
+                25 to R.string.photos_step_25_move,
+                40 to R.string.photos_step_40_move,
+            ))
+        }
         if (tool == OverlayService.WIDGET_TABS) {
             val direction = label(getString(if (prefs.getBoolean(TabControls.REVERSE_SWIPE, false))
                 R.string.tab_direction_reversed else R.string.tab_direction_default))
@@ -207,6 +230,37 @@ class MainActivity : Activity() {
             prefs.edit().putInt("${tool}_color", color).apply()
             updateAppearance()
         })
+    }
+
+    private fun addDragChoice(
+        card: LinearLayout,
+        label: (String) -> TextView,
+        key: String,
+        title: Int,
+        choices: List<Pair<Int, Int>>,
+    ) {
+        label(getString(title))
+        val prefs = ToolSettings.prefs(this)
+        val stored = prefs.getInt(key, 0)
+        val selected = choices.indexOfFirst { it.first == stored }.coerceAtLeast(0)
+        val spinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@MainActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                choices.map { getString(it.second) },
+            )
+            setSelection(selected)
+            contentDescription = getString(title)
+        }
+        card.addView(spinner)
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val px = choices[position].first
+                if (px == prefs.getInt(key, 0)) return
+                prefs.edit().putInt(key, px).apply()
+            }
+        }
     }
 
     private fun updateAppearance() {
